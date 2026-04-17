@@ -249,23 +249,48 @@
                 const r = snap.val();
                 if(!r) return;
 
-                // التوزيع التلقائي وإنهاء اللعبة (الـ Host هو اللي بيديرها عشان مفيش لخبطة)
-                if(myId === r.host && r.status === 'playing') {
-                    let allEmpty = Object.keys(r.players).every(p => !r.hands || !r.hands[p] || r.hands[p].length === 0);
-                    if(allEmpty) {
-                        if(r.deck && r.deck.length > 0) {
-                            let deck = r.deck;
-                            let updates = { deck: deck };
-                            Object.keys(r.players).forEach(p => { updates[`hands/${p}`] = deck.splice(0, 4); });
-                            db.ref(`rooms/${roomId}`).update(updates);
-                        } else {
-                            calculateFinalScore(r);
-                        }
-                    }
-                }
-                updateScreen(r);
+               // التوزيع التلقائي المطور (حسبة كيمو)
+if (myId === r.host && r.status === 'playing') {
+    let allEmpty = Object.keys(r.players).every(p => !r.hands || !r.hands[p] || r.hands[p].length === 0);
+
+    if (allEmpty) {
+        if (r.deck && r.deck.length > 0) {
+            let deck = [...r.deck]; // نسخة من الورق
+            let pKeys = Object.keys(r.players); // كل اللعيبة بما فيهم المضيف
+            let numPlayers = pKeys.length;
+            let totalCards = deck.length;
+
+            // الحسبة: كل واحد ياخد كام (بحد أقصى 4)
+            let cardsPerPlayer = Math.floor(totalCards / numPlayers);
+            if (cardsPerPlayer > 4) cardsPerPlayer = 4; // عشان نلتزم بقانون البصرة (4 كروت)
+
+            let updates = {};
+            let table = r.table || [];
+
+            // 1. توزيع الكروت على اللعيبة بالتساوي
+            pKeys.forEach(p => {
+                updates[`rooms/${roomId}/hands/${p}`] = deck.splice(0, cardsPerPlayer);
             });
+
+            // 2. لو فيه ورق فاضل (رقم فردي أو أقل من عدد اللعيبة) ينزل الأرض
+            if (deck.length > 0 && cardsPerPlayer < 4) {
+                // لو الورق اللي فاضل مش هيكفي دور كامل جديد، نزله الأرض
+                table = [...table, ...deck];
+                updates[`rooms/${roomId}/table`] = table;
+                updates[`rooms/${roomId}/deck`] = []; // السطة فضيت
+            } else {
+                updates[`rooms/${roomId}/deck`] = deck; // لسه فيه ورق لدور تاني
+            }
+
+            // إرسال التحديث مرة واحدة للفايرباز
+            db.ref().update(updates);
+
+        } else {
+            // لو السطة خلصت خالص، احسب النتيجة
+            calculateFinalScore(r);
         }
+    }
+}
 
         // === تحديث الشاشة ===
         function updateScreen(r) {
