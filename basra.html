@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بصرة أونلاين - Kareem Gaming Hub</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+        
+        body { background: #0a0a0a; color: white; font-family: 'Cairo', sans-serif; margin: 0; overflow-x: hidden; }
+        .btn { background: #f1c40f; color: black; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn:hover { background: #fff; transform: scale(1.05); }
+
+        /* Lobby Styles */
+        #lobby { padding: 40px; text-align: center; }
+        .rooms-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 30px; }
+        .room-card { background: #1a1a1a; padding: 20px; border: 1px solid #333; border-radius: 12px; cursor: pointer; transition: 0.3s; position: relative; }
+        .room-card:hover { border-color: #f1c40f; background: #222; }
+        .lock-icon { position: absolute; top: 10px; left: 10px; color: #ff4d4d; }
+
+        /* Modal Styles */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
+        .modal-content { background: #1a1a1a; padding: 30px; border-radius: 15px; border: 2px solid #f1c40f; width: 320px; text-align: center; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; background: #222; border: 1px solid #444; color: white; border-radius: 8px; box-sizing: border-box; }
+
+        /* Game Screen Styles */
+        #game-screen { display: none; flex-direction: column; height: 100vh; }
+        #table { flex-grow: 1; background: radial-gradient(circle, #1a472a 0%, #0d2616 100%); margin: 20px; border-radius: 30px; border: 10px solid #3e2723; position: relative; display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; }
+        #player-hand { height: 180px; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; gap: 15px; padding: 10px; border-top: 2px solid #f1c40f; }
+        
+        .card-img { width: 90px; height: 130px; border-radius: 8px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+        .card-img:hover { transform: translateY(-20px) scale(1.1); z-index: 10; }
+        .table-card { width: 70px; height: 100px; }
+        
+        #status-bar { padding: 10px; background: #f1c40f; color: black; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="lobby">
+        <h1 style="color: #f1c40f;">بصرة أونلاين 🃏</h1>
+        <button class="btn" onclick="showCreateModal()">+ إنشاء غرفة جديدة</button>
+        <div id="rooms-display" class="rooms-list"></div>
+    </div>
+
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <h3>إعدادات الغرفة</h3>
+            <input type="text" id="userNameCreate" placeholder="اسمك">
+            <input type="text" id="roomNameInput" placeholder="اسم الغرفة">
+            <select id="roomType" onchange="togglePassInput()">
+                <option value="public">غرفة عامة</option>
+                <option value="private">غرفة مخصصة 🔒</option>
+            </select>
+            <input type="password" id="roomPassInput" placeholder="كلمة السر" style="display: none;">
+            <button class="btn" onclick="createNewRoom()">إنشاء ودخول</button>
+            <button class="btn" style="background: #444; margin-top: 5px;" onclick="closeModals()">إلغاء</button>
+        </div>
+    </div>
+
+    <div id="joinModal" class="modal">
+        <div class="modal-content">
+            <h3>انضمام للغرفة</h3>
+            <input type="text" id="userNameJoin" placeholder="اسمك">
+            <input type="password" id="joinPassInput" placeholder="كلمة السر" style="display: none;">
+            <button class="btn" id="confirmJoinBtn">دخول</button>
+            <button class="btn" style="background: #444; margin-top: 5px;" onclick="closeModals()">إلغاء</button>
+        </div>
+    </div>
+
+    <div id="game-screen">
+        <div id="status-bar">انتظار اللاعبين...</div>
+        <div id="table">
+            </div>
+        <div id="player-hand">
+            </div>
+        <button id="startBtn" class="btn" style="display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);" onclick="startGame()">بدء التوزيع</button>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCd84g8O2xZzIiNQCOQ9W5H_bLmcMJAu_k",
+            authDomain: "kout-d2e1d.firebaseapp.com",
+            projectId: "kout-d2e1d",
+            databaseURL: "https://kout-d2e1d-default-rtdb.firebaseio.com",
+            storageBucket: "kout-d2e1d.firebasestorage.app",
+            messagingSenderId: "6198509971",
+            appId: "1:6198509971:web:88f046db480e7dc429a866"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let currentRoomId = null;
+        let myName = "";
+        let isHost = false;
+
+        // --- Logic اللوبي ---
+        function showCreateModal() { document.getElementById('createModal').style.display = 'flex'; }
+        function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+        function togglePassInput() {
+            document.getElementById('roomPassInput').style.display = document.getElementById('roomType').value === 'private' ? 'block' : 'none';
+        }
+
+        function createNewRoom() {
+            myName = document.getElementById('userNameCreate').value;
+            const roomName = document.getElementById('roomNameInput').value;
+            const type = document.getElementById('roomType').value;
+            const pass = document.getElementById('roomPassInput').value;
+
+            if(!myName || !roomName) return alert("املا البيانات يا بطل");
+
+            const roomRef = db.ref('rooms').push();
+            isHost = true;
+            currentRoomId = roomRef.key;
+
+            roomRef.set({
+                name: roomName,
+                type: type,
+                password: type === 'private' ? pass : null,
+                host: myName,
+                status: 'waiting',
+                table: [],
+                deck: generateDeck()
+            }).then(() => {
+                db.ref(`rooms/${currentRoomId}/players/${myName}`).set(true);
+                setupGameUI();
+            });
+        }
+
+        db.ref('rooms').on('value', snapshot => {
+            const display = document.getElementById('rooms-display');
+            display.innerHTML = '';
+            snapshot.forEach(child => {
+                const room = child.val();
+                if(room.status === 'finished') return;
+                const card = document.createElement('div');
+                card.className = 'room-card';
+                card.innerHTML = `<h3>${room.name}</h3><p>المضيف: ${room.host}</p>${room.type === 'private' ? '<span class="lock-icon">🔒</span>' : ''}`;
+                card.onclick = () => prepareJoin(child.key, room);
+                display.appendChild(card);
+            });
+        });
+
+        function prepareJoin(roomId, roomData) {
+            currentRoomId = roomId;
+            const modal = document.getElementById('joinModal');
+            document.getElementById('joinPassInput').style.display = roomData.type === 'private' ? 'block' : 'none';
+            modal.style.display = 'flex';
+
+            document.getElementById('confirmJoinBtn').onclick = () => {
+                myName = document.getElementById('userNameJoin').value;
+                const pass = document.getElementById('joinPassInput').value;
+                if(!myName) return alert("دخل اسمك");
+                if(roomData.type === 'private' && pass !== roomData.password) return alert("كلمة السر غلط");
+
+                db.ref(`rooms/${roomId}/players/${myName}`).set(true);
+                setupGameUI();
+            };
+        }
+
+        // --- Logic اللعبة ---
+        function generateDeck() {
+            const suits = ['BLACK_CLUBS', 'BLACK_SPADES', 'RED_DIAMONDS', 'RED_HEARTS'];
+            const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+            let deck = [];
+            suits.forEach(s => values.forEach(v => deck.push({ id: `${v}_${s}.PNG`, val: v })));
+            return deck.sort(() => Math.random() - 0.5);
+        }
+
+        function setupGameUI() {
+            closeModals();
+            document.getElementById('lobby').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+            
+            db.ref(`rooms/${currentRoomId}`).on('value', snapshot => {
+                const room = snapshot.val();
+                if(!room) return;
+
+                // تحديث الأرض
+                const tableDiv = document.getElementById('table');
+                tableDiv.innerHTML = '';
+                if(room.table) {
+                    room.table.forEach(c => {
+                        tableDiv.innerHTML += `<img src="${c.id}" class="card-img table-card">`;
+                    });
+                }
+
+                // تحديث اليد
+                const handDiv = document.getElementById('player-hand');
+                handDiv.innerHTML = '';
+                if(room.hands && room.hands[myName]) {
+                    room.hands[myName].forEach((c, idx) => {
+                        const img = document.createElement('img');
+                        img.src = c.id;
+                        img.className = 'card-img';
+                        img.onclick = () => playCard(c, idx, room);
+                        handDiv.appendChild(img);
+                    });
+                }
+
+                // إدارة زر البدء والحالة
+                if(isHost && room.status === 'waiting') document.getElementById('startBtn').style.display = 'block';
+                else document.getElementById('startBtn').style.display = 'none';
+                
+                document.getElementById('status-bar').innerText = room.status === 'waiting' ? "في انتظار البدء..." : "دور اللاعبين";
+            });
+        }
+
+        function startGame() {
+            db.ref(`rooms/${currentRoomId}`).once('value', snapshot => {
+                const room = snapshot.val();
+                let deck = room.deck;
+                let table = deck.splice(0, 4);
+                let hands = {};
+                
+                Object.keys(room.players).forEach(p => {
+                    hands[p] = deck.splice(0, 4);
+                });
+
+                db.ref(`rooms/${currentRoomId}`).update({
+                    status: 'playing',
+                    deck: deck,
+                    table: table,
+                    hands: hands
+                });
+            });
+        }
+
+        function playCard(card, idx, room) {
+            let table = room.table || [];
+            let myHand = room.hands[myName];
+            const lastCard = table.length > 0 ? table[table.length - 1] : null;
+
+            // منطق البصرة: (نفس الرقم) أو (ولد) أو (7 كومي)
+            const isBasra = lastCard && (card.val === lastCard.val || card.val === 'J' || (card.val === '7' && card.id.includes('RED_DIAMONDS')));
+
+            if(isBasra) {
+                alert("بصرة! 🔥");
+                table = []; // لم الأرض
+            } else {
+                table.push(card);
+            }
+
+            myHand.splice(idx, 1);
+            
+            let updates = {};
+            updates[`rooms/${currentRoomId}/table`] = table;
+            updates[`rooms/${currentRoomId}/hands/${myName}`] = myHand;
+            
+            // لو الكروت خلصت عند الكل، وزع تاني
+            if(myHand.length === 0) {
+                 // كود مبسط لإعادة التوزيع لو الدك لسه فيه
+            }
+
+            db.ref().update(updates);
+        }
+    </script>
+</body>
+</html>
