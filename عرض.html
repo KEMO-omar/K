@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مجموعة كروت كريم الاحترافية</title>
+    <style>
+        /* تنسيق الصفحة العام */
+        body {
+            background-color: #1a472a; /* لون طاولة الكوتشينة */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        h1 {
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+        }
+
+        /* حاوية الكروت */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 20px;
+            width: 95%;
+            max-width: 1200px;
+        }
+
+        /* هيكل الكارت ثلاثي الأبعاد */
+        .card {
+            width: 100px;
+            height: 150px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            border-radius: 10px;
+        }
+
+        /* الحالة عند النقر (القلب) */
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #333;
+        }
+
+        /* الظهر (صورة Kareem.jpg) */
+        .card-back {
+            background-color: #000;
+        }
+
+        /* الوجة (صور الكروت من GitHub) */
+        .card-front {
+            background-color: #fff;
+            transform: rotateY(180deg);
+        }
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* تأثير خفيف عند التحويم بالماوس */
+        .card:hover .card-inner {
+            box-shadow: 0 8px 16px rgba(255, 215, 0, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>مجموعة كروت كريم</h1>
+    
+    <div class="grid-container" id="deck">
+        </div>
+
+    <script>
+        const deckContainer = document.getElementById('deck');
+
+        // المجموعات والأرقام كما هي في أسماء ملفاتك
+        const suits = ['BLACK_CLUBS', 'BLACK_SPADES', 'RED_DIAMONDS', 'RED_HEARTS'];
+        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        
+        // اسم صورة الظهر التي رفعتها
+        const backImage = 'BACK_CARD.PNG'; 
+
+        function createDeck() {
+            suits.forEach(suit => {
+                values.forEach(value => {
+                    // بناء اسم الملف مطابق للجيت هاب (مثلاً: A_BLACK_SPADES.PNG)
+                    // ملاحظة: الـ Ace في ملفاتك اسمه A
+                    const fileName = `${value}_${suit}.PNG`;
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    
+                    card.innerHTML = `
+                        <div class="card-inner">
+                            <div class="card-back">
+                                <img src="${backImage}" alt="Back">
+                            </div>
+                            <div class="card-front">
+                                <img src="${fileName}" alt="${fileName}">
+                            </div>
+                        </div>
+                    `;
+
+                    // إضافة وظيفة القلب عند الضغط
+                    card.addEventListener('click', function() {
+                        this.classList.toggle('flipped');
+                    });
+
+                    deckContainer.appendChild(card);
+                });
+            });
+        }
+
+        // تشغيل الدالة لإنشاء الـ 52 كارت
+        createDeck();
+    </script>
+</body>
+</html>
