@@ -3,79 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>بصرة الرسمية - Kareem Cards</title>
+    <title>بصرة مصرية - على مية بيضا</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
         
-        :root { --gold: #f1c40f; --dark: #0a0a0a; --table-green: radial-gradient(circle, #1a472a 0%, #06140a 100%); }
-        body { background: var(--dark); color: white; font-family: 'Cairo', sans-serif; margin: 0; overflow: hidden; height: 100vh; }
+        :root { --gold: #f1c40f; --dark: #0f0f0f; --card-w: 75px; --card-h: 105px; }
+        body { background: #000; color: white; font-family: 'Cairo', sans-serif; margin: 0; overflow: hidden; height: 100vh; }
         
-        /* Modals & UI */
-        .btn { background: var(--gold); color: black; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: 'Cairo'; transition: 0.3s; }
-        .btn:hover { background: white; transform: scale(1.05); }
-        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; justify-content:center; align-items:center; }
-        .modal-content { background:#151515; border:2px solid var(--gold); padding:25px; border-radius:15px; width:320px; text-align:center; }
-        input, select { width: 90%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: white; border-radius: 5px; }
+        /* Lobby Style */
+        #lobby { height: 100%; display: flex; flex-direction: column; align-items: center; background: radial-gradient(circle, #1e272e, #000); padding: 20px; overflow-y: auto; }
+        .hero-title { font-size: 3.5rem; color: var(--gold); text-shadow: 0 0 20px rgba(241,196,15,0.5); font-weight: 900; margin-bottom: 10px; }
+        .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; width: 90%; max-width: 1000px; }
+        .room-card { background: rgba(255,255,255,0.05); border: 1px solid #333; padding: 20px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
+        .room-card:hover { border-color: var(--gold); background: rgba(255,255,255,0.1); }
+        
+        /* Modals */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
+        .modal-box { background: #1a1a1a; border: 2px solid var(--gold); padding: 30px; border-radius: 20px; width: 340px; text-align: center; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; box-sizing: border-box; }
+        .btn { background: var(--gold); color: #000; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; font-family: 'Cairo'; margin-top: 5px; }
+        .btn:hover { transform: scale(1.05); filter: brightness(1.2); }
 
-        /* Lobby */
-        #lobby { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(to bottom, #1e272e, #000); }
-        .rooms-list { width: 90%; max-width: 500px; margin-top: 20px; max-height: 50vh; overflow-y: auto; }
-        .room-item { background: #1a1a1a; margin: 5px; padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
-
-        /* Game Board */
-        #game-screen { display: none; flex-direction: column; height: 100%; background: var(--table-green); }
-        #status-bar { background: rgba(0,0,0,0.5); padding: 5px; text-align: center; color: var(--gold); font-weight: bold; font-size: 0.9rem; }
+        /* Game UI */
+        #game-screen { display: none; flex-direction: column; height: 100%; background: radial-gradient(circle, #1a472a 0%, #06140a 100%); }
+        .top-nav { background: rgba(0,0,0,0.6); padding: 8px; text-align: center; font-weight: bold; color: var(--gold); border-bottom: 1px solid var(--gold); }
         
-        /* Positions */
-        .others-area { display: flex; justify-content: center; gap: 15px; padding: 10px; height: 20vh; }
-        .player-card { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; text-align: center; min-width: 120px; position: relative; border: 2px solid transparent; }
-        .turn-active { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); }
+        .opponents-container { display: flex; justify-content: center; gap: 30px; height: 22vh; padding: 10px; }
+        .player-hub { position: relative; display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 12px; min-width: 140px; border: 2px solid transparent; }
+        .is-turn { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); }
         
-        .card-img { width: 60px; height: 85px; border-radius: 5px; margin: 2px; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
-        .table-area { flex-grow: 1; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 20px; }
-        .my-area { height: 30vh; background: rgba(0,0,0,0.6); border-top: 3px solid var(--gold); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .table-zone { flex-grow: 1; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 20px; position: relative; }
+        .card-img { width: var(--card-w); height: var(--card-h); border-radius: 6px; box-shadow: 0 4px 10px #000; transition: 0.3s; }
         
-        .hand-card { width: 85px; height: 120px; cursor: pointer; transition: 0.2s; margin: 0 5px; }
-        .hand-card:hover { transform: translateY(-20px); filter: brightness(1.2); }
+        .my-zone { height: 28vh; background: rgba(0,0,0,0.8); border-top: 3px solid var(--gold); display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding: 10px; position: relative; }
+        .hand { display: flex; gap: 10px; }
+        .playable:hover { transform: translateY(-20px); cursor: pointer; border: 2px solid var(--gold); }
         
-        .score-badge { position: absolute; top: -10px; right: -10px; background: var(--gold); color: black; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; }
+        /* Piles */
+        .pile-view { position: absolute; bottom: 10px; right: 10px; display: flex; align-items: center; gap: 5px; }
+        .pile-stack { width: 40px; height: 55px; border: 1px solid var(--gold); border-radius: 4px; background: #222; overflow: hidden; position: relative; }
+        .pile-stack img { width: 100%; }
+        .score-num { font-weight: bold; color: var(--gold); background: #000; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
-    <!-- Lobby Interface -->
     <div id="lobby">
-        <h1 style="color:var(--gold); font-size: 2.5rem; margin-bottom: 10px;">بصرة أونلاين</h1>
-        <button class="btn" onclick="showModal('createModal')">إنشاء غرفة جديدة</button>
-        <div class="rooms-list" id="rooms-container"></div>
+        <div class="hero-title">بصرة كروت 🃏</div>
+        <button class="btn" style="width: 250px;" onclick="document.getElementById('createModal').style.display='flex'">إنشاء طاولة</button>
+        <div class="room-grid" id="rooms-list"></div>
     </div>
 
-    <!-- Create Room Modal -->
     <div id="createModal" class="modal">
-        <div class="modal-content">
-            <h3 style="color:var(--gold)">إعدادات الغرفة</h3>
-            <input type="text" id="pName" placeholder="اسمك">
-            <input type="text" id="rName" placeholder="اسم الغرفة">
-            <select id="maxP">
-                <option value="2">لاعبين 2</option>
-                <option value="3">3 لاعبين</option>
-                <option value="4">4 لاعبين</option>
-            </select>
-            <button class="btn" style="width:100%" onclick="initRoom()">إنشاء ودخول</button>
-            <button class="btn" style="width:100%; margin-top:5px; background:#444;" onclick="hideModals()">إلغاء</button>
+        <div class="modal-box">
+            <h2 style="color:var(--gold)">غرفة جديدة</h2>
+            <input type="text" id="cName" placeholder="اسمك">
+            <input type="text" id="cRoom" placeholder="اسم الغرفة">
+            <select id="cMax"><option value="2">لاعبين (2)</option><option value="3">لاعبين (3)</option><option value="4">لاعبين (4)</option></select>
+            <button class="btn" onclick="createRoom()">ابدأ اللعب</button>
+            <button class="btn" style="background:#444; margin-top:10px;" onclick="hideModals()">إلغاء</button>
         </div>
     </div>
 
-    <!-- Game Interface -->
     <div id="game-screen">
-        <div id="status-bar">جاري الاتصال...</div>
-        <div class="others-area" id="opponents"></div>
-        <div class="table-area" id="table"></div>
-        <div class="my-area">
-            <div id="my-hand" style="display:flex;"></div>
-            <div style="margin-top:10px; font-weight:bold;" id="my-label">أنت</div>
+        <div class="top-nav" id="game-status">في انتظار اللاعبين...</div>
+        <div class="opponents-container" id="others"></div>
+        
+        <div class="table-zone" id="table">
+            </div>
+
+        <div class="my-zone" id="my-area">
+            <div class="hand" id="my-hand"></div>
+            <div style="font-weight: bold;" id="my-tag">أنت</div>
+            <div class="pile-view">
+                <div class="pile-stack" id="my-pile-img"></div>
+                <div class="score-num" id="my-count">0 ورقة</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="resModal" class="modal">
+        <div class="modal-box" style="width:400px;">
+            <h1 style="color:var(--gold)">النتائج النهائية 🏆</h1>
+            <div id="final-stats" style="text-align:right; margin: 20px 0; line-height: 1.8;"></div>
+            <button class="btn" onclick="resetGame()">لعبة جديدة</button>
+            <button class="btn" style="background:#e74c3c; margin-top:10px;" onclick="exitGame()">خروج نهائي</button>
         </div>
     </div>
 
@@ -89,209 +103,305 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let myName = "", roomId = "", deck = [];
-        const ASSETS = "https://raw.githubusercontent.com/Cody-X/cards-assets/master/";
-        const BACK = ASSETS + "back.png";
+        let myId = "", roomId = "", dealingLocked = false;
+        const IMG_BASE = "https://raw.githubusercontent.com/Cody-X/cards-assets/master/";
+        const BACK = IMG_BASE + "back.png";
 
-        function showModal(id) { document.getElementById(id).style.display = 'flex'; }
-        function hideModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+        function hideModals() { document.querySelectorAll('.modal').forEach(m=>m.style.display='none'); }
 
-        // 1. Create Game Logic
-        function initRoom() {
-            myName = document.getElementById('pName').value.trim();
-            const roomTitle = document.getElementById('rName').value.trim();
-            const limit = parseInt(document.getElementById('maxP').value);
-            if(!myName || !roomTitle) return alert("اكتب اسمك واسم الغرفة");
+        // --- Core Logic ---
 
-            const ref = db.ref('rooms').push();
-            roomId = ref.key;
-            ref.set({
-                title: roomTitle, max: limit, status: 'waiting',
-                table: [], deck: createDeck(), turn: myName
-            }).then(() => {
-                joinProcess(roomId, myName);
-            });
-        }
-
-        // 2. Join Game Logic
-        function joinProcess(id, name) {
-            roomId = id; myName = name;
-            db.ref(`rooms/${roomId}/players/${name}`).set({ score: 0, captured: 0 })
-            .then(() => {
-                hideModals();
-                document.getElementById('lobby').style.display = 'none';
-                document.getElementById('game-screen').style.display = 'flex';
-                document.getElementById('my-label').innerText = name;
-                syncGame();
-            });
-        }
-
-        // 3. Deck Generation
         function createDeck() {
             const suits = ['CLUBS', 'SPADES', 'DIAMONDS', 'HEARTS'];
             const vals = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
             let d = [];
             suits.forEach(s => vals.forEach(v => {
-                let weight = isNaN(v) ? (v==='A'?1:(v==='J'?11:(v==='Q'?12:13))) : parseInt(v);
-                d.push({ id: `${v}_${(s==='DIAMONDS'||s==='HEARTS'?'RED':'BLACK')}_${s}.PNG`, v: weight, n: v });
+                let w = isNaN(v) ? (v==='A'?1:(v==='J'?11:(v==='Q'?12:13))) : parseInt(v);
+                d.push({ id: `${v}_${(s==='DIAMONDS'||s==='HEARTS'?'RED':'BLACK')}_${s}.PNG`, v: w, n: v });
             }));
             return d.sort(() => Math.random() - 0.5);
         }
 
-        // 4. Room Browser
+        function createRoom() {
+            myId = document.getElementById('cName').value.trim();
+            const rName = document.getElementById('cRoom').value.trim();
+            const max = parseInt(document.getElementById('cMax').value);
+            if(!myId || !rName) return alert("كمل البيانات يا كيمو");
+
+            const ref = db.ref('rooms').push();
+            roomId = ref.key;
+            ref.set({
+                name: rName, max: max, status: 'waiting',
+                deck: createDeck(), table: [], turn: myId, lastCapture: ""
+            }).then(() => joinRoom(roomId, myId));
+        }
+
+        function joinRoom(id, name) {
+            roomId = id; myId = name;
+            db.ref(`rooms/${roomId}/players/${name}`).set({ basras: 0, captured: [], totalScore: 0 });
+            hideModals();
+            document.getElementById('lobby').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+            document.getElementById('my-tag').innerText = name;
+            listenGame();
+        }
+
         db.ref('rooms').on('value', snap => {
-            const container = document.getElementById('rooms-container');
-            container.innerHTML = "";
+            const list = document.getElementById('rooms-list');
+            list.innerHTML = "";
             snap.forEach(child => {
                 const r = child.val();
                 if(r.status === 'finished') return;
-                const pCount = Object.keys(r.players || {}).length;
-                container.innerHTML += `
-                    <div class="room-item">
-                        <span><b>${r.title}</b> (${pCount}/${r.max})</span>
-                        <button class="btn" onclick="handleJoinRequest('${child.key}')">دخول</button>
-                    </div>`;
+                const pLen = Object.keys(r.players || {}).length;
+                list.innerHTML += `<div class="room-card">
+                    <div><b>${r.name}</b><br><small>${pLen}/${r.max} لاعبين</small></div>
+                    <button class="btn" style="width:80px" onclick="handleJoin('${child.key}')">دخول</button>
+                </div>`;
             });
         });
 
-        function handleJoinRequest(id) {
-            const n = prompt("ادخل اسمك:");
-            if(n) joinProcess(id, n);
+        function handleJoin(id) {
+            const n = prompt("اسمك إيه؟");
+            if(n) joinRoom(id, n);
         }
 
-        // 5. Game Synchronization (The Brain)
-        function syncGame() {
+        // --- The Dealer (Site Controlled) ---
+
+        function listenGame() {
             db.ref(`rooms/${roomId}`).on('value', snap => {
                 const r = snap.val();
                 if(!r) return;
 
                 const pKeys = Object.keys(r.players || {});
                 
-                // --- AUTO DEALER LOGIC ---
-                // No host check! Any client who sees the room is full and waiting initiates the deal.
-                if(r.status === 'waiting' && pKeys.length >= r.max) {
-                    executeDeal(r, pKeys);
-                    return;
+                // Logic 1: Initial Start (Site auto-deals)
+                if(r.status === 'waiting' && pKeys.length >= r.max && !dealingLocked) {
+                    dealingLocked = true;
+                    distributeCards(r, pKeys, true);
                 }
 
-                // Check if we need a re-deal (all hands empty)
-                const hands = r.hands || {};
-                const allEmpty = pKeys.every(p => !hands[p] || hands[p].length === 0);
-                if(r.status === 'playing' && allEmpty && r.deck && r.deck.length > 0) {
-                    executeRedeal(r, pKeys);
-                    return;
+                // Logic 2: Re-deal when hands empty
+                const allHandsEmpty = pKeys.every(p => !r.hands || !r.hands[p] || r.hands[p].length === 0);
+                if(r.status === 'playing' && allHandsEmpty && !dealingLocked) {
+                    if(r.deck && r.deck.length > 0) {
+                        dealingLocked = true;
+                        distributeCards(r, pKeys, false);
+                    } else {
+                        finishGame(r, pKeys);
+                    }
                 }
 
-                renderUI(r, pKeys);
+                render(r, pKeys);
             });
         }
 
-        function executeDeal(r, pKeys) {
-            let currentDeck = [...r.deck];
-            let table = [];
-            // Pick 4 cards for table (avoid J or 7D on start if possible)
-            while(table.length < 4) {
-                let c = currentDeck.pop();
-                if(c.n === 'J' || (c.n === '7' && c.id.includes('RED_DIAMONDS'))) currentDeck.unshift(c);
-                else table.push(c);
+        function distributeCards(r, pKeys, isFirst) {
+            let deck = [...r.deck];
+            let updates = {};
+            let table = r.table ? [...r.table] : [];
+
+            if(isFirst) {
+                // Ground 4 cards
+                while(table.length < 4) {
+                    let c = deck.pop();
+                    if(c.n === 'J' || (c.n === '7' && c.id.includes('RED_DIAMONDS'))) deck.unshift(c);
+                    else table.push(c);
+                }
+                updates['status'] = 'playing';
+                updates['table'] = table;
             }
 
-            let updates = { status: 'playing', table: table };
-            pKeys.forEach(p => {
-                updates[`hands/${p}`] = currentDeck.splice(0, 4);
-            });
-            updates['deck'] = currentDeck;
+            // Math for remaining cards
+            let perPlayer = 4;
+            if(deck.length < pKeys.length * 4) {
+                perPlayer = Math.floor(deck.length / pKeys.length);
+            }
 
-            db.ref(`rooms/${roomId}`).update(updates);
+            pKeys.forEach(p => {
+                updates[`hands/${p}`] = deck.splice(0, perPlayer);
+            });
+            updates['deck'] = deck;
+
+            db.ref(`rooms/${roomId}`).update(updates).then(()=> dealingLocked = false);
         }
 
-        function executeRedeal(r, pKeys) {
-            let currentDeck = [...r.deck];
-            let updates = {};
-            pKeys.forEach(p => {
-                updates[`hands/${p}`] = currentDeck.splice(0, 4);
+        // --- Game Play & Calculations ---
+
+        function playCard(card, idx, r, pKeys) {
+            let table = r.table ? [...r.table] : [];
+            let myCaptured = r.players[myId].captured || [];
+            let myBasras = r.players[myId].basras || 0;
+            let currentHand = [...r.hands[myId]];
+            let taken = [];
+
+            // 1. J or Komi (Take everything)
+            const isJack = card.n === 'J';
+            const isKomi = (card.n === '7' && card.id.includes('RED_DIAMONDS'));
+
+            if(isJack || (isKomi && table.reduce((s,c)=>s+c.v, 0) <= 10)) {
+                if(table.length > 0) {
+                    taken = [...table];
+                    table = [];
+                }
+            } else {
+                // 2. Sums and Matches
+                let usedTableIndices = new Set();
+                
+                // Matches (e.g. 5 takes 5)
+                table.forEach((c, i) => {
+                    if(c.v === card.v) { taken.push(c); usedTableIndices.add(i); }
+                });
+
+                // Sums (e.g. 5 takes 2+3)
+                // Only for numbers <= 10
+                if(card.v <= 10) {
+                    for(let i=0; i<table.length; i++) {
+                        if(usedTableIndices.has(i)) continue;
+                        for(let j=i+1; j<table.length; j++) {
+                            if(!usedTableIndices.has(j) && (table[i].v + table[j].v === card.v)) {
+                                taken.push(table[i], table[j]);
+                                usedTableIndices.add(i); usedTableIndices.add(j);
+                            }
+                        }
+                    }
+                }
+                // Update table
+                table = table.filter((_, i) => !usedTableIndices.has(i));
+            }
+
+            // Check for Basra (Hetta)
+            if(taken.length > 0) {
+                if(table.length === 0 && !isJack) {
+                    myBasras += 1; // It's a Basra!
+                }
+                myCaptured = [...myCaptured, ...taken, card];
+            } else {
+                table.push(card);
+            }
+
+            currentHand.splice(idx, 1);
+            let nextIdx = (pKeys.indexOf(myId) + 1) % pKeys.length;
+
+            db.ref(`rooms/${roomId}`).update({
+                table: table,
+                [`hands/${myId}`]: currentHand,
+                turn: pKeys[nextIdx],
+                [`players/${myId}/captured`]: myCaptured,
+                [`players/${myId}/basras`]: myBasras,
+                lastCapture: (taken.length > 0) ? myId : r.lastCapture
             });
-            updates['deck'] = currentDeck;
-            db.ref(`rooms/${roomId}`).update(updates);
         }
 
-        // 6. Rendering
-        function renderUI(r, pKeys) {
-            document.getElementById('status-bar').innerText = (r.turn === myName) ? "دورك الآن!" : `دور اللاعب: ${r.turn}`;
-            
+        // --- Final Scoring ---
+
+        function finishGame(r, pKeys) {
+            // Give remaining table cards to last person who captured
+            let table = r.table || [];
+            let updates = { status: 'finished' };
+            if(table.length > 0 && r.lastCapture) {
+                let lastP = r.players[r.lastCapture].captured || [];
+                updates[`players/${r.lastCapture}/captured`] = [...lastP, ...table];
+                updates[`table`] = [];
+            }
+            db.ref(`rooms/${roomId}`).update(updates);
+            showResults(r, pKeys);
+        }
+
+        function showResults(r, pKeys) {
+            let stats = "";
+            let winner = "", maxTotal = -1;
+
+            pKeys.forEach(p => {
+                let data = r.players[p];
+                let cap = data.captured || [];
+                let basras = data.basras || 0;
+                
+                // Score Calculation
+                let score = (basras * 10);
+                cap.forEach(c => {
+                    if(c.n === 'A' || c.n === 'J') score += 1;
+                    if(c.id.includes('2_BLACK_SPADES')) score += 2;
+                    if(c.id.includes('10_RED_DIAMONDS')) score += 3;
+                });
+                // Card majority (+3)
+                // This logic is simplified for the end screen
+                
+                stats += `<b>${p}:</b> ${score} نقطة (${cap.length} ورقة، ${basras} بصرة)<br>`;
+                if(score > maxTotal) { maxTotal = score; winner = p; }
+            });
+
+            document.getElementById('final-stats').innerHTML = stats + `<hr><h2 style="color:var(--gold)">الفائز هو ${winner} 🎉</h2>`;
+            showModal('resModal');
+        }
+
+        function resetGame() {
+            db.ref(`rooms/${roomId}`).update({
+                status: 'waiting', deck: createDeck(), table: [], hands: null, lastCapture: ""
+            });
+            hideModals();
+        }
+
+        function exitGame() {
+            db.ref(`rooms/${roomId}`).remove();
+            location.reload();
+        }
+
+        // --- Rendering Engine ---
+
+        function render(r, pKeys) {
+            // Status
+            document.getElementById('game-status').innerText = (r.status === 'waiting') ? 
+                `في انتظار اللاعبين (${pKeys.length}/${r.max})` : 
+                (r.turn === myId ? "دورك العب!" : `دور اللاعب: ${r.turn}`);
+
             // Table
-            const tableDiv = document.getElementById('table');
-            tableDiv.innerHTML = "";
+            const tableZone = document.getElementById('table');
+            tableZone.innerHTML = "";
             (r.table || []).forEach(c => {
-                tableDiv.innerHTML += `<img src="${ASSETS}${c.id.toLowerCase()}" class="card-img" style="width:75px; height:105px;">`;
+                tableZone.innerHTML += `<img src="${IMG_BASE}${c.id.toLowerCase()}" class="card-img">`;
             });
 
-            // Opponents
-            const oppDiv = document.getElementById('opponents');
-            oppDiv.innerHTML = "";
+            // Others
+            const othersZone = document.getElementById('others');
+            othersZone.innerHTML = "";
             pKeys.forEach(p => {
-                if(p !== myName) {
-                    const hCount = (r.hands && r.hands[p]) ? r.hands[p].length : 0;
-                    const cCount = r.players[p].captured || 0;
-                    oppDiv.innerHTML += `
-                        <div class="player-card ${r.turn === p ? 'turn-active' : ''}">
-                            <div class="score-badge">${cCount}</div>
-                            <div style="font-size:0.8rem;">${p}</div>
-                            <div style="display:flex; justify-content:center;">
-                                ${Array(hCount).fill(0).map(()=>`<img src="${BACK}" style="width:30px; margin-left:-15px; border-radius:3px; border:1px solid #555;">`).join('')}
+                if(p !== myId) {
+                    const handCount = (r.hands && r.hands[p]) ? r.hands[p].length : 0;
+                    const capCount = (r.players[p].captured || []).length;
+                    const lastCard = capCount > 0 ? IMG_BASE + r.players[p].captured[capCount-1].id.toLowerCase() : BACK;
+
+                    othersZone.innerHTML += `
+                        <div class="player-hub ${r.turn === p ? 'is-turn' : ''}">
+                            <div style="font-size:0.8rem">${p}</div>
+                            <div style="display:flex; margin-top:5px;">
+                                ${Array(handCount).fill(0).map(()=>`<img src="${BACK}" style="width:25px; margin-left:-12px; border:1px solid #000">`).join('')}
+                            </div>
+                            <div class="pile-view" style="bottom: 2px; right: 2px;">
+                                <div class="pile-stack"><img src="${lastCard}"></div>
+                                <div class="score-num">${capCount}</div>
                             </div>
                         </div>`;
                 }
             });
 
             // My Hand
-            const myHandDiv = document.getElementById('my-hand');
-            myHandDiv.innerHTML = "";
-            if(r.hands && r.hands[myName]) {
-                r.hands[myName].forEach((c, i) => {
+            const myHandZone = document.getElementById('my-hand');
+            myHandZone.innerHTML = "";
+            if(r.hands && r.hands[myId]) {
+                r.hands[myId].forEach((c, idx) => {
                     const img = document.createElement('img');
-                    img.src = `${ASSETS}${c.id.toLowerCase()}`;
-                    img.className = "hand-card card-img";
-                    img.onclick = () => { if(r.turn === myName) playAction(c, i, r, pKeys); };
-                    myHandDiv.appendChild(img);
+                    img.src = `${IMG_BASE}${c.id.toLowerCase()}`;
+                    img.className = "card-img playable";
+                    img.onclick = () => { if(r.turn === myId) playCard(c, idx, r, pKeys); };
+                    myHandZone.appendChild(img);
                 });
             }
-        }
-
-        // 7. Gameplay Logic
-        function playAction(card, idx, room, pKeys) {
-            let table = room.table ? [...room.table] : [];
-            let myCaptured = room.players[myName].captured || 0;
-            let currentHand = [...room.hands[myName]];
-            let capturedThisTurn = [];
-
-            // Simple Logic: Match or Take All with J
-            if (card.n === 'J') {
-                capturedThisTurn = [...table];
-                table = [];
-            } else {
-                let matchIdx = table.findIndex(c => c.v === card.v);
-                if (matchIdx > -1) {
-                    capturedThisTurn.push(table[matchIdx]);
-                    table.splice(matchIdx, 1);
-                } else {
-                    table.push(card);
-                }
+            document.getElementById('my-count').innerText = (r.players[myId].captured || []).length + " ورقة";
+            if((r.players[myId].captured || []).length > 0) {
+                const myLast = r.players[myId].captured[r.players[myId].captured.length-1];
+                document.getElementById('my-pile-img').innerHTML = `<img src="${IMG_BASE}${myLast.id.toLowerCase()}">`;
             }
-
-            if(capturedThisTurn.length > 0) myCaptured += (capturedThisTurn.length + 1);
-            
-            currentHand.splice(idx, 1);
-            const nextTurn = pKeys[(pKeys.indexOf(myName) + 1) % pKeys.length];
-
-            db.ref(`rooms/${roomId}`).update({
-                table: table,
-                [`hands/${myName}`]: currentHand,
-                turn: nextTurn,
-                [`players/${myName}/captured`]: myCaptured
-            });
         }
-
     </script>
 </body>
 </html>
