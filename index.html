@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kareem Gaming Hub - منصة ألعاب الكوتشينة</title>
+    <style>
+        /* الخطوط والألوان الأساسية */
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+
+        :root {
+            --primary-gold: #f1c40f;
+            --dark-bg: #0f0f0f;
+            --card-shadow: 0 10px 30px rgba(0,0,0,0.7);
+        }
+
+        body {
+            background: radial-gradient(circle at center, #1e272e 0%, #000000 100%);
+            color: white;
+            font-family: 'Cairo', sans-serif;
+            margin: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* واجهة البطل (Hero Section) */
+        .hero {
+            text-align: center;
+            padding: 80px 20px;
+            animation: fadeIn 1.5s ease-out;
+        }
+
+        h1 {
+            font-size: 4rem;
+            margin: 0;
+            background: linear-gradient(to bottom, #fff, #f1c40f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(241, 196, 15, 0.3);
+            font-weight: 900;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: #aaa;
+            margin-top: 10px;
+        }
+
+        /* الأزرار الرئيسية */
+        .main-menu {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 50px;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .play-btn {
+            background: var(--primary-gold);
+            color: black;
+            box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
+        }
+
+        .view-cards-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .portfolio-btn {
+            background: transparent;
+            color: #f1c40f;
+            border-color: #f1c40f;
+        }
+
+        .btn:hover {
+            transform: scale(1.1) translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+        }
+
+        /* النافذة المنبثقة (Modal) */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            backdrop-filter: blur(15px);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            width: 90%;
+            max-width: 900px;
+            max-height: 80vh;
+            border-radius: 20px;
+            border: 1px solid #333;
+            padding: 30px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2rem;
+            color: #f1c40f;
+            cursor: pointer;
+        }
+
+        /* قائمة الألعاب */
+        .games-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .game-item {
+            display: flex;
+            align-items: center;
+            background: #252525;
+            padding: 15px;
+            border-radius: 15px;
+            gap: 20px;
+            transition: 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .game-item:hover {
+            border-color: #f1c40f;
+            background: #2d2d2d;
+            transform: translateX(-10px);
+        }
+
+        .game-img {
+            width: 60px;
+            height: 80px;
+            border-radius: 5px;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+        }
+
+        .game-info {
+            flex-grow: 1;
+        }
+
+        .game-info h3 {
+            margin: 0;
+            color: #f1c40f;
+        }
+
+        .game-info p {
+            margin: 5px 0 0;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .enter-btn {
+            background: #f1c40f;
+            color: black;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <section class="hero">
+        <h1>KAREEM GAMING HUB</h1>
+        <p>المنصة الرسمية لألعاب الكوتشينة أونلاين - صناعة مصرية واحترافية</p>
+        
+        <div class="main-menu">
+            <button class="btn play-btn" onclick="openModal()">🎮 العب الآن</button>
+            <a href="عرض.html" class="btn view-cards-btn">🃏 عرض الكروت</a>
+            <a href="https://kemo-omar.github.io/Kareem/" target="_blank" class="btn portfolio-btn">🌐 موقعي الشخصي</a>
+        </div>
+    </section>
+
+    <div id="gamesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <h2 style="color: #f1c40f; text-align: center;">اختر لعبتك المفضلة</h2>
+            
+            <div class="games-list">
+                <div class="game-item">
+                    <img src="A_BLACK_SPADES.PNG" class="game-img">
+                    <div class="game-info">
+                        <h3>الشايب (Old Maid)</h3>
+                        <p>لعبة الذكاء والحظ، حاول ألا ينتهي بك المطاف ومعك كارت الشايب الوحيد!</p>
+                    </div>
+                    <a href="old-maid.html" class="enter-btn">دخول</a>
+                </div>
+
+                <div class="game-item">
+                    <img src="J_BLACK_SPADES.jpg" class="game-img">
+                    <div class="game-info">
+                        <h3>بصرة</h3>
+                        <p>اللعبة الشعبية الأولى في مصر، اجمع الكروت المتشابهة واحسب الـ "بصرة" لتفوز.</p>
+                    </div>
+                    <a href="basra.html" class="enter-btn">دخول</a>
+                </div>
+
+                <div class="game-item">
+                    <img src="BACK_CARD.PNG" class="game-img">
+                    <div class="game-info">
+                        <h3>فوق بعضيه</h3>
+                        <p>لعبة السرعة، ضع الكارت المتشابه في الرقم لتأخذ كل الأوراق الموجودة على الأرض.</p>
+                    </div>
+                    <a href="stack-game.html" class="enter-btn">دخول</a>
+                </div>
+
+                <div class="game-item">
+                    <img src="Q_BLACK_SPADES.jpg" class="game-img">
+                    <div class="game-info">
+                        <h3>كونتي كونتي</h3>
+                        <p>لعبة ممتعة تعتمد على الترتيب والسرعة في التخلص من أوراقك.</p>
+                    </div>
+                    <a href="conti.html" class="enter-btn">دخول</a>
+                </div>
+
+                <div class="game-item">
+                    <img src="K_BLACK_SPADES.jpg" class="game-img">
+                    <div class="game-info">
+                        <h3>أشك (I Doubt It)</h3>
+                        <p>لعبة الخداع، حاول التخلص من أوراقك عن طريق "التمثيل" والشك في خصومك.</p>
+                    </div>
+                    <a href="i-doubt-it.html" class="enter-btn">دخول</a>
+                </div>
+
+                <div class="game-item">
+                    <img src="10_BLACK_SPADES.PNG" class="game-img">
+                    <div class="game-info">
+                        <h3>البنك (Bank)</h3>
+                        <p>لعبة حسابية تعتمد على جمع أرقام معينة للوصول لأعلى قيمة وتغلب البنك.</p>
+                    </div>
+                    <a href="bank.html" class="enter-btn">دخول</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const modal = document.getElementById("gamesModal");
+
+        function openModal() {
+            modal.style.display = "flex";
+        }
+
+        function closeModal() {
+            modal.style.display = "none";
+        }
+
+        // إغلاق النافذة عند الضغط في أي مكان خارجها
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
