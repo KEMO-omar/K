@@ -131,7 +131,7 @@
             suits.forEach(s => vals.forEach(v => {
                 let color = (s === 'DIAMONDS' || s === 'HEARTS') ? 'RED' : 'BLACK';
                 let weight = isNaN(v) ? (v === 'A' ? 1 : (v === 'J' ? 11 : (v === 'Q' ? 12 : 13))) : parseInt(v);
-                d.push({ id: `${v}_${color}_${s}.PNG`, v: weight, n: v });
+                d.push({ id: `${v}_${s}_${color}.PNG`, v: weight, n: v });
             }));
             return d.sort(() => Math.random() - 0.5);
         }
@@ -143,7 +143,7 @@
             const max = parseInt(document.getElementById('cMaxPlayers').value);
             const type = document.getElementById('cRoomType').value;
             const pass = document.getElementById('cPassword').value;
-            if(!myId || !rName) return alert("البيانات ناقصة يا كيمو");
+            if(!myId || !rName) return alert("البيانات ناقصة");
 
             const ref = db.ref('rooms').push();
             roomId = ref.key;
