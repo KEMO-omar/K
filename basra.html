@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>بصرة الرسمية - Kareem Cards</title>
+    <!-- تم تحديث روابط المكتبات لضمان التوافق التام -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
@@ -32,7 +33,7 @@
         /* مناطق اللاعبين */
         .opponents-container { display: flex; justify-content: center; gap: 20px; padding: 10px; height: 25vh; }
         .player-zone { display: flex; flex-direction: column; align-items: center; position: relative; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 15px; min-width: 200px; }
-        .active-turn { box-shadow: 0 0 20px var(--gold); border: 1px solid var(--gold); }
+        .active-turn { box-shadow: 0 0 20px var(--gold); border: 2px solid var(--gold); }
         .player-name { font-weight: bold; margin-bottom: 5px; background: #222; padding: 5px 15px; border-radius: 10px; }
         .hand { display: flex; gap: -20px; justify-content: center; height: 100px; }
         .hand img { width: 70px; height: 100px; border-radius: 5px; margin-left: -30px; box-shadow: -2px 2px 5px rgba(0,0,0,0.5); }
@@ -165,8 +166,9 @@
             list.innerHTML = '';
             snap.forEach(child => {
                 const r = child.val();
-                if(r.status === 'finished') return;
-                const pCount = r.players ? Object.keys(r.players).length : 0;
+                if(r.status === 'finished' || !r.players) return;
+                const pKeys = Object.keys(r.players);
+                const pCount = pKeys.length;
                 const div = document.createElement('div');
                 div.className = 'room-card';
                 div.innerHTML = `
@@ -181,6 +183,7 @@
         function prepareJoin(id) {
             db.ref(`rooms/${id}`).once('value', snap => {
                 const r = snap.val();
+                if(!r) return;
                 if(r.players && Object.keys(r.players).length >= r.maxPlayers) return alert("الغرفة ممتلئة!");
                 
                 roomId = id; hostId = r.host;
@@ -206,7 +209,6 @@
             listenGame();
         }
 
-        // === لوجيك الكوتشينة وإنشاء الدك ===
         function generateDeck() {
             const suits = ['BLACK_CLUBS', 'BLACK_SPADES', 'RED_DIAMONDS', 'RED_HEARTS'];
             const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -224,10 +226,9 @@
             db.ref(`rooms/${roomId}`).once('value', snap => {
                 let r = snap.val();
                 let deck = r.deck;
-                
-                // قوانين الأرض: ممنوع الولد أو الكومي ينزلوا في الـ 4 كروت الأولى
                 let table = [];
                 let tempDeck = [];
+                
                 while(table.length < 4 && deck.length > 0) {
                     let c = deck.pop();
                     if(c.n === 'J' || (c.n === '7' && c.id.includes('RED_DIAMONDS'))) {
@@ -236,7 +237,7 @@
                         table.push(c);
                     }
                 }
-                deck = [...deck, ...tempDeck].sort(() => Math.random() - 0.5); // رجعهم وفنط تاني
+                deck = [...deck, ...tempDeck].sort(() => Math.random() - 0.5);
 
                 let updates = { status: 'playing', deck: deck, table: table };
                 Object.keys(r.players).forEach(p => { updates[`hands/${p}`] = deck.splice(0, 4); });
@@ -249,50 +250,44 @@
                 const r = snap.val();
                 if(!r) return;
 
-               // التوزيع التلقائي المطور (حسبة كيمو)
-if (myId === r.host && r.status === 'playing') {
-    let allEmpty = Object.keys(r.players).every(p => !r.hands || !r.hands[p] || r.hands[p].length === 0);
+                // التوزيع التلقائي المطور
+                if (myId === r.host && r.status === 'playing') {
+                    let pKeys = Object.keys(r.players);
+                    let allEmpty = pKeys.every(p => !r.hands || !r.hands[p] || r.hands[p].length === 0);
 
-    if (allEmpty) {
-        if (r.deck && r.deck.length > 0) {
-            let deck = [...r.deck]; // نسخة من الورق
-            let pKeys = Object.keys(r.players); // كل اللعيبة بما فيهم المضيف
-            let numPlayers = pKeys.length;
-            let totalCards = deck.length;
+                    if (allEmpty) {
+                        if (r.deck && r.deck.length > 0) {
+                            let deck = [...r.deck];
+                            let numPlayers = pKeys.length;
+                            let cardsPerPlayer = 4; // بصرة دايماً 4
+                            
+                            // تأكد إن فيه ورق يكفي الجميع دور كامل
+                            if(deck.length >= numPlayers * cardsPerPlayer) {
+                                let updates = {};
+                                pKeys.forEach(p => {
+                                    updates[`hands/${p}`] = deck.splice(0, cardsPerPlayer);
+                                });
+                                updates[`deck`] = deck;
+                                db.ref(`rooms/${roomId}`).update(updates);
+                            } else {
+                                // لو الورق مش مكفي دور كامل، نزله الأرض واحسب النتيجة
+                                let table = (r.table || []).concat(deck);
+                                db.ref(`rooms/${roomId}`).update({ table: table, deck: [], status: 'calculating' });
+                            }
+                        } else {
+                            calculateFinalScore(r);
+                        }
+                    }
+                }
+                
+                if (r.status === 'calculating' && myId === r.host) {
+                    calculateFinalScore(r);
+                }
 
-            // الحسبة: كل واحد ياخد كام (بحد أقصى 4)
-            let cardsPerPlayer = Math.floor(totalCards / numPlayers);
-            if (cardsPerPlayer > 4) cardsPerPlayer = 4; // عشان نلتزم بقانون البصرة (4 كروت)
-
-            let updates = {};
-            let table = r.table || [];
-
-            // 1. توزيع الكروت على اللعيبة بالتساوي
-            pKeys.forEach(p => {
-                updates[`rooms/${roomId}/hands/${p}`] = deck.splice(0, cardsPerPlayer);
+                updateScreen(r);
             });
-
-            // 2. لو فيه ورق فاضل (رقم فردي أو أقل من عدد اللعيبة) ينزل الأرض
-            if (deck.length > 0 && cardsPerPlayer < 4) {
-                // لو الورق اللي فاضل مش هيكفي دور كامل جديد، نزله الأرض
-                table = [...table, ...deck];
-                updates[`rooms/${roomId}/table`] = table;
-                updates[`rooms/${roomId}/deck`] = []; // السطة فضيت
-            } else {
-                updates[`rooms/${roomId}/deck`] = deck; // لسه فيه ورق لدور تاني
-            }
-
-            // إرسال التحديث مرة واحدة للفايرباز
-            db.ref().update(updates);
-
-        } else {
-            // لو السطة خلصت خالص، احسب النتيجة
-            calculateFinalScore(r);
         }
-    }
-}
 
-        // === تحديث الشاشة ===
         function updateScreen(r) {
             // الأرض
             const tableDiv = document.getElementById('table-zone');
@@ -306,6 +301,8 @@ if (myId === r.host && r.status === 'playing') {
             oppArea.innerHTML = '';
             
             document.getElementById('my-zone').className = r.turn === myId ? "active-turn" : "";
+            document.getElementById('my-name').innerText = myId + (r.turn === myId ? " (دورك)" : "");
+            
             const myPile = document.getElementById('my-pile');
             let myCapCount = (r.players[myId] && r.players[myId].captured) ? r.players[myId].captured.length : 0;
             myPile.innerHTML = myCapCount > 0 ? `<img src="${BACK_CARD}"><span>${myCapCount}</span>` : "";
@@ -321,7 +318,7 @@ if (myId === r.host && r.status === 'playing') {
                     for(let i=0; i<handCount; i++) cardsHtml += `<img src="${BACK_CARD}">`;
                     
                     pZone.innerHTML = `
-                        <div class="player-name">${p}</div>
+                        <div class="player-name">${p}${r.turn === p ? ' (بيلعب..)' : ''}</div>
                         <div class="hand">${cardsHtml}</div>
                         <div class="pile">${capCount > 0 ? `<img src="${BACK_CARD}"><span>${capCount}</span>` : ''}</div>
                     `;
@@ -336,7 +333,7 @@ if (myId === r.host && r.status === 'playing') {
                 r.hands[myId].forEach((c, i) => {
                     const img = document.createElement('img');
                     img.src = c.id; img.className = 'my-card';
-                    img.onclick = () => { if(r.turn === myId) playCard(c, i, r); };
+                    img.onclick = () => { if(r.turn === myId && r.status === 'playing') playCard(c, i, r); };
                     myHandDiv.appendChild(img);
                 });
             }
@@ -346,7 +343,6 @@ if (myId === r.host && r.status === 'playing') {
             } else { document.getElementById('startBtn').style.display = 'none'; }
         }
 
-        // === لوجيك سحب الورق والجمع (البصرة الأساسية) ===
         function playCard(card, idx, room) {
             let table = room.table || [];
             let myCaptured = (room.players[myId].captured || []);
@@ -356,35 +352,28 @@ if (myId === r.host && r.status === 'playing') {
 
             const isJack = card.n === 'J';
             const isKomi = card.n === '7' && card.id.includes('RED_DIAMONDS');
-            let tableSum = table.reduce((sum, c) => sum + c.v, 0);
 
-            // 1. لو ولد: بيقش كل حاجة، بس مفيش بصرة
             if(isJack) {
                 if(table.length > 0) capturedThisTurn = [...table];
                 table = [];
             } 
-            // 2. لو كومي: بيقش لو الأرض 10 أو أقل. (وممكن يبقى بصرة لو الأرض كارت واحد بس)
-            else if(isKomi && tableSum <= 10) {
-                if(table.length > 0) {
+            else if(isKomi) {
+                let sum = table.reduce((s, c) => s + c.v, 0);
+                if(sum <= 10 && table.length > 0) {
                     capturedThisTurn = [...table];
-                    if(table.length === 1 && table[0].v === 7) isBasra = true; // بصرة الكومي لو لقى 7
+                    if(table.length === 1 && table[0].v === 7) isBasra = true;
                     table = [];
                 }
             } 
-            // 3. لعب عادي (جمع أو تطابق)
             else {
                 let remaining = [];
-                // الصور (K, Q) بتاخد اللي زيها بس
                 if(card.v > 10) {
                     table.forEach(c => { if(c.v === card.v) capturedThisTurn.push(c); else remaining.push(c); });
                 } else {
-                    // الأرقام: جمع وتطابق (Subset Sum مبسط)
                     let used = new Array(table.length).fill(false);
-                    
-                    // أ. التطابق المباشر
+                    // تطابق
                     table.forEach((c, i) => { if(c.v === card.v) { capturedThisTurn.push(c); used[i] = true; } });
-                    
-                    // ب. الجمع (كارتين)
+                    // جمع ثنائي
                     for(let i=0; i<table.length; i++) {
                         if(used[i]) continue;
                         for(let j=i+1; j<table.length; j++) {
@@ -394,7 +383,7 @@ if (myId === r.host && r.status === 'playing') {
                             }
                         }
                     }
-                    // ج. الجمع (3 كروت)
+                    // جمع ثلاثي
                     for(let i=0; i<table.length; i++) {
                         if(used[i]) continue;
                         for(let j=i+1; j<table.length; j++) {
@@ -407,13 +396,11 @@ if (myId === r.host && r.status === 'playing') {
                             }
                         }
                     }
-                    
                     table.forEach((c, i) => { if(!used[i]) remaining.push(c); });
                 }
                 
                 if(capturedThisTurn.length > 0) {
                     table = remaining;
-                    // حساب البصرة (لو الأرض فضيت ومكنش الكارت الملعوب ولد)
                     if(table.length === 0 && room.table.length > 0) {
                         isBasra = true;
                         showBasraAnim();
@@ -421,7 +408,6 @@ if (myId === r.host && r.status === 'playing') {
                 }
             }
 
-            // تجميع الورق
             if(capturedThisTurn.length > 0) {
                 capturedThisTurn.push(card);
                 myCaptured = [...myCaptured, ...capturedThisTurn];
@@ -430,7 +416,6 @@ if (myId === r.host && r.status === 'playing') {
                 table.push(card);
             }
 
-            // تحديث الفايرباز
             let myHand = room.hands[myId];
             myHand.splice(idx, 1);
             
@@ -438,59 +423,49 @@ if (myId === r.host && r.status === 'playing') {
             const nextTurn = pList[(pList.indexOf(myId) + 1) % pList.length];
 
             let updates = {};
-            updates[`rooms/${roomId}/table`] = table;
-            updates[`rooms/${roomId}/hands/${myId}`] = myHand;
-            updates[`rooms/${roomId}/turn`] = nextTurn;
-            updates[`rooms/${roomId}/players/${myId}/captured`] = myCaptured;
-            updates[`rooms/${roomId}/players/${myId}/basras`] = myBasras;
+            updates[`table`] = table;
+            updates[`hands/${myId}`] = myHand;
+            updates[`turn`] = nextTurn;
+            updates[`players/${myId}/captured`] = myCaptured;
+            updates[`players/${myId}/basras`] = myBasras;
             
-            db.ref().update(updates);
+            db.ref(`rooms/${roomId}`).update(updates);
         }
 
         function showBasraAnim() {
             const b = document.getElementById('basra-alert');
             b.style.display = 'block';
-            setTimeout(() => b.style.display = 'none', 1000);
+            setTimeout(() => { b.style.display = 'none'; }, 1000);
         }
 
-        // === حساب النقاط الرسمي ===
         function calculateFinalScore(r) {
             let pKeys = Object.keys(r.players);
-            let maxCards = 0;
-            let maxPlayer = "";
+            let maxCards = -1;
+            let maxPlayer = [];
 
-            // حساب مين أكتر واحد لم ورق
             pKeys.forEach(p => {
                 let len = (r.players[p].captured || []).length;
-                if(len > maxCards) { maxCards = len; maxPlayer = p; }
+                if(len > maxCards) { maxCards = len; maxPlayer = [p]; }
+                else if(len === maxCards) { maxPlayer.push(p); }
             });
 
             let finalText = "";
-            let highestScore = -1;
-            let winner = "";
-
             pKeys.forEach(p => {
                 let pData = r.players[p];
                 let caps = pData.captured || [];
                 let score = 0;
 
-                // 3 نقط للأكتر ورق
-                if(p === maxPlayer) score += 3;
-                
-                // 10 نقط لكل بصرة
+                if(maxPlayer.includes(p) && maxCards > 0) score += 3;
                 score += (pData.basras || 0) * 10;
 
-                // نقط الأوراق
                 caps.forEach(c => {
                     if(c.n === 'A' || c.n === 'J') score += 1;
                     if(c.id === '2_BLACK_SPADES.PNG') score += 2;
-                    if(c.id === '10_RED_DIAMONDS.PNG') score += 3; // الكومي
+                    if(c.id.includes('10_RED_DIAMONDS.PNG')) score += 3;
                 });
 
-                if(score > highestScore) { highestScore = score; winner = p; }
-                
                 finalText += `<div style="border-bottom:1px solid #444; padding:5px 0;">
-                    <span style="color:var(--gold)">${p}</span>: ${score} نقطة (البصراوي: ${pData.basras||0})
+                    <span style="color:var(--gold)">${p}</span>: ${score} نقطة (البصرات: ${pData.basras||0})
                 </div>`;
             });
 
@@ -500,13 +475,16 @@ if (myId === r.host && r.status === 'playing') {
         }
 
         function resetGame() {
-            db.ref(`rooms/${roomId}`).update({ status: 'waiting', deck: generateDeck(), table: [], hands: null });
-            Object.keys(db.ref(`rooms/${roomId}/players`).once('value').then(s => {
-                let updates = {};
-                s.forEach(c => { updates[`rooms/${roomId}/players/${c.key}/captured`] = []; updates[`rooms/${roomId}/players/${c.key}/basras`] = 0; });
-                db.ref().update(updates);
-            }));
-            document.getElementById('endModal').style.display = 'none';
+            db.ref(`rooms/${roomId}`).once('value', snap => {
+                let r = snap.val();
+                let updates = { status: 'waiting', deck: generateDeck(), table: [], hands: {} };
+                Object.keys(r.players).forEach(p => {
+                    updates[`players/${p}/captured`] = [];
+                    updates[`players/${p}/basras`] = 0;
+                });
+                db.ref(`rooms/${roomId}`).update(updates);
+                document.getElementById('endModal').style.display = 'none';
+            });
         }
 
         function exitRoom() { db.ref(`rooms/${roomId}`).remove(); location.reload(); }
