@@ -4,126 +4,82 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>بصرة الرسمية - Kareem Cards</title>
-    <!-- تم تحديث روابط المكتبات لضمان التوافق التام -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
         
-        :root { --gold: #f1c40f; --dark: #0a0a0a; --bg-board: radial-gradient(circle, #1a472a 0%, #06140a 100%); }
+        :root { --gold: #f1c40f; --dark: #0a0a0a; --table-green: radial-gradient(circle, #1a472a 0%, #06140a 100%); }
         body { background: var(--dark); color: white; font-family: 'Cairo', sans-serif; margin: 0; overflow: hidden; height: 100vh; }
         
-        /* الأزرار والنوافذ */
-        .btn { background: var(--gold); color: black; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: 'Cairo'; transition: 0.3s; box-shadow: 0 4px 10px rgba(241,196,15,0.3); }
-        .btn:hover { transform: translateY(-3px); background: #fff; }
-        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); backdrop-filter:blur(5px); z-index:1000; justify-content:center; align-items:center; }
-        .modal-content { background:#111; border:2px solid var(--gold); padding:30px; border-radius:15px; width:350px; text-align:center; }
-        input, select { width: 90%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: white; border-radius: 5px; font-family: 'Cairo'; }
-        
-        /* اللوبي */
-        #lobby { height: 100%; display: flex; flex-direction: column; align-items: center; padding-top: 40px; overflow-y: auto; background: radial-gradient(circle at top, #1e272e, #000); }
-        .title { font-size: 3rem; color: var(--gold); margin-bottom: 20px; font-weight: 900; }
-        .rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; width: 90%; max-width: 1000px; margin-top: 30px; }
-        .room-card { background: #1a1a1a; border: 1px solid #333; padding: 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
-        .room-card:hover { border-color: var(--gold); transform: scale(1.02); }
+        /* Modals & UI */
+        .btn { background: var(--gold); color: black; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: 'Cairo'; transition: 0.3s; }
+        .btn:hover { background: white; transform: scale(1.05); }
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; justify-content:center; align-items:center; }
+        .modal-content { background:#151515; border:2px solid var(--gold); padding:25px; border-radius:15px; width:320px; text-align:center; }
+        input, select { width: 90%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: white; border-radius: 5px; }
 
-        /* شاشة اللعبة */
-        #game-screen { display: none; flex-direction: column; height: 100%; justify-content: space-between; background: var(--bg-board); }
-        
-        /* مناطق اللاعبين */
-        .opponents-container { display: flex; justify-content: center; gap: 20px; padding: 10px; height: 25vh; }
-        .player-zone { display: flex; flex-direction: column; align-items: center; position: relative; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 15px; min-width: 200px; }
-        .active-turn { box-shadow: 0 0 20px var(--gold); border: 2px solid var(--gold); }
-        .player-name { font-weight: bold; margin-bottom: 5px; background: #222; padding: 5px 15px; border-radius: 10px; }
-        .hand { display: flex; gap: -20px; justify-content: center; height: 100px; }
-        .hand img { width: 70px; height: 100px; border-radius: 5px; margin-left: -30px; box-shadow: -2px 2px 5px rgba(0,0,0,0.5); }
-        .hand img:first-child { margin-left: 0; }
-        
-        /* الكوم (الورق اللي اتلم) */
-        .pile { position: absolute; right: -60px; top: 20px; width: 50px; height: 75px; border: 2px dashed #555; border-radius: 5px; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; font-weight: bold; color: var(--gold); }
-        .pile img { position: absolute; width: 100%; height: 100%; border-radius: 5px; z-index: 1; }
-        .pile span { position: relative; z-index: 2; background: rgba(0,0,0,0.7); padding: 2px 5px; border-radius: 5px; }
+        /* Lobby */
+        #lobby { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(to bottom, #1e272e, #000); }
+        .rooms-list { width: 90%; max-width: 500px; margin-top: 20px; max-height: 50vh; overflow-y: auto; }
+        .room-item { background: #1a1a1a; margin: 5px; padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
 
-        /* الأرض */
-        #table-zone { flex-grow: 1; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 15px; border-top: 2px solid rgba(255,255,255,0.1); border-bottom: 2px solid rgba(255,255,255,0.1); padding: 20px; }
-        .table-card { width: 80px; height: 115px; border-radius: 8px; box-shadow: 0 5px 10px rgba(0,0,0,0.5); }
-
-        /* إيدي أنا */
-        #my-zone { height: 30vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; background: rgba(0,0,0,0.6); border-top: 2px solid var(--gold); }
-        #my-hand { display: flex; gap: 15px; }
-        .my-card { width: 90px; height: 130px; border-radius: 8px; cursor: pointer; transition: 0.3s; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-        .my-card:hover { transform: translateY(-20px) scale(1.1); border: 2px solid var(--gold); }
+        /* Game Board */
+        #game-screen { display: none; flex-direction: column; height: 100%; background: var(--table-green); }
+        #status-bar { background: rgba(0,0,0,0.5); padding: 5px; text-align: center; color: var(--gold); font-weight: bold; font-size: 0.9rem; }
         
-        /* رسالة بصرة سريعة */
-        #basra-alert { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 5rem; color: var(--gold); text-shadow: 0 0 20px #000; display: none; z-index: 100; font-weight: 900; animation: pop 1s ease-out; pointer-events: none; }
-        @keyframes pop { 0% { transform: translate(-50%, -50%) scale(0); opacity: 1; } 80% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
-
+        /* Positions */
+        .others-area { display: flex; justify-content: center; gap: 15px; padding: 10px; height: 20vh; }
+        .player-card { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; text-align: center; min-width: 120px; position: relative; border: 2px solid transparent; }
+        .turn-active { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); }
+        
+        .card-img { width: 60px; height: 85px; border-radius: 5px; margin: 2px; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
+        .table-area { flex-grow: 1; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 20px; }
+        .my-area { height: 30vh; background: rgba(0,0,0,0.6); border-top: 3px solid var(--gold); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        .hand-card { width: 85px; height: 120px; cursor: pointer; transition: 0.2s; margin: 0 5px; }
+        .hand-card:hover { transform: translateY(-20px); filter: brightness(1.2); }
+        
+        .score-badge { position: absolute; top: -10px; right: -10px; background: var(--gold); color: black; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; }
     </style>
 </head>
 <body>
 
+    <!-- Lobby Interface -->
     <div id="lobby">
-        <div class="title">بصرة - على مية بيضا 🃏</div>
-        <button class="btn" onclick="document.getElementById('createModal').style.display='flex'">إنشاء طاولة</button>
-        <div class="rooms-grid" id="rooms-list"></div>
+        <h1 style="color:var(--gold); font-size: 2.5rem; margin-bottom: 10px;">بصرة أونلاين</h1>
+        <button class="btn" onclick="showModal('createModal')">إنشاء غرفة جديدة</button>
+        <div class="rooms-list" id="rooms-container"></div>
     </div>
 
+    <!-- Create Room Modal -->
     <div id="createModal" class="modal">
         <div class="modal-content">
-            <h2 style="color:var(--gold);">غرفة جديدة</h2>
-            <input type="text" id="cName" placeholder="اسمك">
-            <input type="text" id="cRoom" placeholder="اسم الغرفة">
-            <select id="cPlayers">
+            <h3 style="color:var(--gold)">إعدادات الغرفة</h3>
+            <input type="text" id="pName" placeholder="اسمك">
+            <input type="text" id="rName" placeholder="اسم الغرفة">
+            <select id="maxP">
                 <option value="2">لاعبين 2</option>
                 <option value="3">3 لاعبين</option>
                 <option value="4">4 لاعبين</option>
             </select>
-            <select id="cType" onchange="document.getElementById('cPass').style.display = this.value==='private'?'block':'none'">
-                <option value="public">عامة</option>
-                <option value="private">بكلمة سر</option>
-            </select>
-            <input type="password" id="cPass" placeholder="كلمة السر" style="display:none;">
-            <button class="btn" style="width:100%; margin-top:10px;" onclick="createRoom()">إنشاء</button>
-            <button class="btn" style="width:100%; margin-top:10px; background:#444;" onclick="closeModals()">إلغاء</button>
+            <button class="btn" style="width:100%" onclick="initRoom()">إنشاء ودخول</button>
+            <button class="btn" style="width:100%; margin-top:5px; background:#444;" onclick="hideModals()">إلغاء</button>
         </div>
     </div>
 
-    <div id="joinModal" class="modal">
-        <div class="modal-content">
-            <h2 style="color:var(--gold);">دخول الغرفة</h2>
-            <input type="text" id="jName" placeholder="اسمك">
-            <input type="password" id="jPass" placeholder="كلمة السر" style="display:none;">
-            <button class="btn" style="width:100%; margin-top:10px;" id="confirmJoinBtn">دخول</button>
-            <button class="btn" style="width:100%; margin-top:10px; background:#444;" onclick="closeModals()">إلغاء</button>
-        </div>
-    </div>
-
+    <!-- Game Interface -->
     <div id="game-screen">
-        <div id="basra-alert">بصرة! 🔥</div>
-        
-        <div class="opponents-container" id="opponents-area"></div>
-
-        <div id="table-zone"></div>
-        <button id="startBtn" class="btn" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:50;" onclick="startGame()">بدء اللعب</button>
-
-        <div id="my-zone">
-            <div class="player-name" id="my-name">أنت</div>
-            <div id="my-hand"></div>
-            <div class="pile" id="my-pile"></div>
-        </div>
-    </div>
-
-    <div id="endModal" class="modal">
-        <div class="modal-content" style="width:400px;">
-            <h1 style="color:var(--gold); margin-top:0;">النتيجة النهائية 🏆</h1>
-            <div id="finalScores" style="text-align:right; font-size:1.2rem; line-height:2; margin-bottom:20px; background:#222; padding:15px; border-radius:10px;"></div>
-            <button class="btn" style="width:100%; margin-bottom:10px;" onclick="resetGame()">لعبة جديدة بنفس اللاعبين</button>
-            <button class="btn" style="width:100%; background:#e74c3c; color:white;" onclick="exitRoom()">خروج وحذف الغرفة</button>
+        <div id="status-bar">جاري الاتصال...</div>
+        <div class="others-area" id="opponents"></div>
+        <div class="table-area" id="table"></div>
+        <div class="my-area">
+            <div id="my-hand" style="display:flex;"></div>
+            <div style="margin-top:10px; font-weight:bold;" id="my-label">أنت</div>
         </div>
     </div>
 
     <script>
-        // إعدادات Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyCd84g8O2xZzIiNQCOQ9W5H_bLmcMJAu_k",
             authDomain: "kout-d2e1d.firebaseapp.com",
@@ -133,361 +89,209 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let myId = "", roomId = "", hostId = "";
-        const BACK_CARD = "BACK_CARD.PNG";
+        let myName = "", roomId = "", deck = [];
+        const ASSETS = "https://raw.githubusercontent.com/Cody-X/cards-assets/master/";
+        const BACK = ASSETS + "back.png";
 
-        function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+        function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function hideModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
 
-        // === إدارة الغرف ===
-        function createRoom() {
-            myId = document.getElementById('cName').value.trim();
-            const rName = document.getElementById('cRoom').value.trim();
-            const rType = document.getElementById('cType').value;
-            const rPass = document.getElementById('cPass').value;
-            const maxP = parseInt(document.getElementById('cPlayers').value);
-
-            if(!myId || !rName) return alert("البيانات ناقصة");
+        // 1. Create Game Logic
+        function initRoom() {
+            myName = document.getElementById('pName').value.trim();
+            const roomTitle = document.getElementById('rName').value.trim();
+            const limit = parseInt(document.getElementById('maxP').value);
+            if(!myName || !roomTitle) return alert("اكتب اسمك واسم الغرفة");
 
             const ref = db.ref('rooms').push();
             roomId = ref.key;
-            hostId = myId;
-            
             ref.set({
-                name: rName, type: rType, password: rType === 'private' ? rPass : null,
-                status: 'waiting', host: myId, maxPlayers: maxP, turn: myId, table: [], deck: generateDeck()
+                title: roomTitle, max: limit, status: 'waiting',
+                table: [], deck: createDeck(), turn: myName
             }).then(() => {
-                db.ref(`rooms/${roomId}/players/${myId}`).set({ basras: 0, captured: [] });
-                enterGame();
+                joinProcess(roomId, myName);
             });
         }
 
+        // 2. Join Game Logic
+        function joinProcess(id, name) {
+            roomId = id; myName = name;
+            db.ref(`rooms/${roomId}/players/${name}`).set({ score: 0, captured: 0 })
+            .then(() => {
+                hideModals();
+                document.getElementById('lobby').style.display = 'none';
+                document.getElementById('game-screen').style.display = 'flex';
+                document.getElementById('my-label').innerText = name;
+                syncGame();
+            });
+        }
+
+        // 3. Deck Generation
+        function createDeck() {
+            const suits = ['CLUBS', 'SPADES', 'DIAMONDS', 'HEARTS'];
+            const vals = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+            let d = [];
+            suits.forEach(s => vals.forEach(v => {
+                let weight = isNaN(v) ? (v==='A'?1:(v==='J'?11:(v==='Q'?12:13))) : parseInt(v);
+                d.push({ id: `${v}_${(s==='DIAMONDS'||s==='HEARTS'?'RED':'BLACK')}_${s}.PNG`, v: weight, n: v });
+            }));
+            return d.sort(() => Math.random() - 0.5);
+        }
+
+        // 4. Room Browser
         db.ref('rooms').on('value', snap => {
-            const list = document.getElementById('rooms-list');
-            list.innerHTML = '';
+            const container = document.getElementById('rooms-container');
+            container.innerHTML = "";
             snap.forEach(child => {
                 const r = child.val();
-                if(r.status === 'finished' || !r.players) return;
-                const pKeys = Object.keys(r.players);
-                const pCount = pKeys.length;
-                const div = document.createElement('div');
-                div.className = 'room-card';
-                div.innerHTML = `
-                    <div><h3 style="margin:0; color:var(--gold);">${r.name}</h3>
-                    <small>اللاعبين: ${pCount}/${r.maxPlayers}</small></div>
-                    <button class="btn" style="padding:8px 15px;" onclick="prepareJoin('${child.key}')">دخول</button>
-                `;
-                list.appendChild(div);
+                if(r.status === 'finished') return;
+                const pCount = Object.keys(r.players || {}).length;
+                container.innerHTML += `
+                    <div class="room-item">
+                        <span><b>${r.title}</b> (${pCount}/${r.max})</span>
+                        <button class="btn" onclick="handleJoinRequest('${child.key}')">دخول</button>
+                    </div>`;
             });
         });
 
-        function prepareJoin(id) {
-            db.ref(`rooms/${id}`).once('value', snap => {
-                const r = snap.val();
-                if(!r) return;
-                if(r.players && Object.keys(r.players).length >= r.maxPlayers) return alert("الغرفة ممتلئة!");
-                
-                roomId = id; hostId = r.host;
-                document.getElementById('jPass').style.display = r.type === 'private' ? 'block' : 'none';
-                document.getElementById('joinModal').style.display = 'flex';
-
-                document.getElementById('confirmJoinBtn').onclick = () => {
-                    myId = document.getElementById('jName').value.trim();
-                    const pass = document.getElementById('jPass').value;
-                    if(!myId) return;
-                    if(r.type === 'private' && pass !== r.password) return alert("باسورد غلط!");
-                    
-                    db.ref(`rooms/${roomId}/players/${myId}`).set({ basras: 0, captured: [] });
-                    enterGame();
-                };
-            });
+        function handleJoinRequest(id) {
+            const n = prompt("ادخل اسمك:");
+            if(n) joinProcess(id, n);
         }
 
-        function enterGame() {
-            closeModals();
-            document.getElementById('lobby').style.display = 'none';
-            document.getElementById('game-screen').style.display = 'flex';
-            listenGame();
-        }
-
-        function generateDeck() {
-            const suits = ['BLACK_CLUBS', 'BLACK_SPADES', 'RED_DIAMONDS', 'RED_HEARTS'];
-            const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-            let deck = [];
-            suits.forEach(s => {
-                values.forEach(v => {
-                    let num = isNaN(v) ? (v==='A'?1: (v==='J'?11: v==='Q'?12: 13)) : parseInt(v);
-                    deck.push({ id: `${v}_${s}.PNG`, v: num, n: v });
-                });
-            });
-            return deck.sort(() => Math.random() - 0.5);
-        }
-
-        function startGame() {
-            db.ref(`rooms/${roomId}`).once('value', snap => {
-                let r = snap.val();
-                let deck = r.deck;
-                let table = [];
-                let tempDeck = [];
-                
-                while(table.length < 4 && deck.length > 0) {
-                    let c = deck.pop();
-                    if(c.n === 'J' || (c.n === '7' && c.id.includes('RED_DIAMONDS'))) {
-                        tempDeck.push(c);
-                    } else {
-                        table.push(c);
-                    }
-                }
-                deck = [...deck, ...tempDeck].sort(() => Math.random() - 0.5);
-
-                let updates = { status: 'playing', deck: deck, table: table };
-                Object.keys(r.players).forEach(p => { updates[`hands/${p}`] = deck.splice(0, 4); });
-                db.ref(`rooms/${roomId}`).update(updates);
-            });
-        }
-
-        function listenGame() {
+        // 5. Game Synchronization (The Brain)
+        function syncGame() {
             db.ref(`rooms/${roomId}`).on('value', snap => {
                 const r = snap.val();
                 if(!r) return;
 
-                // التوزيع التلقائي المطور
-                if (myId === r.host && r.status === 'playing') {
-                    let pKeys = Object.keys(r.players);
-                    let allEmpty = pKeys.every(p => !r.hands || !r.hands[p] || r.hands[p].length === 0);
-
-                    if (allEmpty) {
-                        if (r.deck && r.deck.length > 0) {
-                            let deck = [...r.deck];
-                            let numPlayers = pKeys.length;
-                            let cardsPerPlayer = 4; // بصرة دايماً 4
-                            
-                            // تأكد إن فيه ورق يكفي الجميع دور كامل
-                            if(deck.length >= numPlayers * cardsPerPlayer) {
-                                let updates = {};
-                                pKeys.forEach(p => {
-                                    updates[`hands/${p}`] = deck.splice(0, cardsPerPlayer);
-                                });
-                                updates[`deck`] = deck;
-                                db.ref(`rooms/${roomId}`).update(updates);
-                            } else {
-                                // لو الورق مش مكفي دور كامل، نزله الأرض واحسب النتيجة
-                                let table = (r.table || []).concat(deck);
-                                db.ref(`rooms/${roomId}`).update({ table: table, deck: [], status: 'calculating' });
-                            }
-                        } else {
-                            calculateFinalScore(r);
-                        }
-                    }
-                }
+                const pKeys = Object.keys(r.players || {});
                 
-                if (r.status === 'calculating' && myId === r.host) {
-                    calculateFinalScore(r);
+                // --- AUTO DEALER LOGIC ---
+                // No host check! Any client who sees the room is full and waiting initiates the deal.
+                if(r.status === 'waiting' && pKeys.length >= r.max) {
+                    executeDeal(r, pKeys);
+                    return;
                 }
 
-                updateScreen(r);
+                // Check if we need a re-deal (all hands empty)
+                const hands = r.hands || {};
+                const allEmpty = pKeys.every(p => !hands[p] || hands[p].length === 0);
+                if(r.status === 'playing' && allEmpty && r.deck && r.deck.length > 0) {
+                    executeRedeal(r, pKeys);
+                    return;
+                }
+
+                renderUI(r, pKeys);
             });
         }
 
-        function updateScreen(r) {
-            // الأرض
-            const tableDiv = document.getElementById('table-zone');
-            tableDiv.innerHTML = '';
-            if(r.table) r.table.forEach(c => {
-                tableDiv.innerHTML += `<img src="${c.id}" class="table-card">`;
+        function executeDeal(r, pKeys) {
+            let currentDeck = [...r.deck];
+            let table = [];
+            // Pick 4 cards for table (avoid J or 7D on start if possible)
+            while(table.length < 4) {
+                let c = currentDeck.pop();
+                if(c.n === 'J' || (c.n === '7' && c.id.includes('RED_DIAMONDS'))) currentDeck.unshift(c);
+                else table.push(c);
+            }
+
+            let updates = { status: 'playing', table: table };
+            pKeys.forEach(p => {
+                updates[`hands/${p}`] = currentDeck.splice(0, 4);
             });
+            updates['deck'] = currentDeck;
 
-            // منطقة اللاعبين
-            const oppArea = document.getElementById('opponents-area');
-            oppArea.innerHTML = '';
-            
-            document.getElementById('my-zone').className = r.turn === myId ? "active-turn" : "";
-            document.getElementById('my-name').innerText = myId + (r.turn === myId ? " (دورك)" : "");
-            
-            const myPile = document.getElementById('my-pile');
-            let myCapCount = (r.players[myId] && r.players[myId].captured) ? r.players[myId].captured.length : 0;
-            myPile.innerHTML = myCapCount > 0 ? `<img src="${BACK_CARD}"><span>${myCapCount}</span>` : "";
-
-            Object.keys(r.players).forEach(p => {
-                if(p !== myId) {
-                    let pZone = document.createElement('div');
-                    pZone.className = `player-zone ${r.turn === p ? 'active-turn' : ''}`;
-                    let capCount = (r.players[p].captured) ? r.players[p].captured.length : 0;
-                    let handCount = (r.hands && r.hands[p]) ? r.hands[p].length : 0;
-                    
-                    let cardsHtml = "";
-                    for(let i=0; i<handCount; i++) cardsHtml += `<img src="${BACK_CARD}">`;
-                    
-                    pZone.innerHTML = `
-                        <div class="player-name">${p}${r.turn === p ? ' (بيلعب..)' : ''}</div>
-                        <div class="hand">${cardsHtml}</div>
-                        <div class="pile">${capCount > 0 ? `<img src="${BACK_CARD}"><span>${capCount}</span>` : ''}</div>
-                    `;
-                    oppArea.appendChild(pZone);
-                }
-            });
-
-            // ورق إيدي
-            const myHandDiv = document.getElementById('my-hand');
-            myHandDiv.innerHTML = '';
-            if(r.hands && r.hands[myId]) {
-                r.hands[myId].forEach((c, i) => {
-                    const img = document.createElement('img');
-                    img.src = c.id; img.className = 'my-card';
-                    img.onclick = () => { if(r.turn === myId && r.status === 'playing') playCard(c, i, r); };
-                    myHandDiv.appendChild(img);
-                });
-            }
-
-            if(myId === r.host && r.status === 'waiting' && Object.keys(r.players).length === r.maxPlayers) {
-                document.getElementById('startBtn').style.display = 'block';
-            } else { document.getElementById('startBtn').style.display = 'none'; }
-        }
-
-        function playCard(card, idx, room) {
-            let table = room.table || [];
-            let myCaptured = (room.players[myId].captured || []);
-            let myBasras = room.players[myId].basras || 0;
-            let capturedThisTurn = [];
-            let isBasra = false;
-
-            const isJack = card.n === 'J';
-            const isKomi = card.n === '7' && card.id.includes('RED_DIAMONDS');
-
-            if(isJack) {
-                if(table.length > 0) capturedThisTurn = [...table];
-                table = [];
-            } 
-            else if(isKomi) {
-                let sum = table.reduce((s, c) => s + c.v, 0);
-                if(sum <= 10 && table.length > 0) {
-                    capturedThisTurn = [...table];
-                    if(table.length === 1 && table[0].v === 7) isBasra = true;
-                    table = [];
-                }
-            } 
-            else {
-                let remaining = [];
-                if(card.v > 10) {
-                    table.forEach(c => { if(c.v === card.v) capturedThisTurn.push(c); else remaining.push(c); });
-                } else {
-                    let used = new Array(table.length).fill(false);
-                    // تطابق
-                    table.forEach((c, i) => { if(c.v === card.v) { capturedThisTurn.push(c); used[i] = true; } });
-                    // جمع ثنائي
-                    for(let i=0; i<table.length; i++) {
-                        if(used[i]) continue;
-                        for(let j=i+1; j<table.length; j++) {
-                            if(!used[j] && table[i].v + table[j].v === card.v) {
-                                capturedThisTurn.push(table[i], table[j]);
-                                used[i] = true; used[j] = true;
-                            }
-                        }
-                    }
-                    // جمع ثلاثي
-                    for(let i=0; i<table.length; i++) {
-                        if(used[i]) continue;
-                        for(let j=i+1; j<table.length; j++) {
-                            if(used[j]) continue;
-                            for(let k=j+1; k<table.length; k++) {
-                                if(!used[k] && table[i].v + table[j].v + table[k].v === card.v) {
-                                    capturedThisTurn.push(table[i], table[j], table[k]);
-                                    used[i] = used[j] = used[k] = true;
-                                }
-                            }
-                        }
-                    }
-                    table.forEach((c, i) => { if(!used[i]) remaining.push(c); });
-                }
-                
-                if(capturedThisTurn.length > 0) {
-                    table = remaining;
-                    if(table.length === 0 && room.table.length > 0) {
-                        isBasra = true;
-                        showBasraAnim();
-                    }
-                }
-            }
-
-            if(capturedThisTurn.length > 0) {
-                capturedThisTurn.push(card);
-                myCaptured = [...myCaptured, ...capturedThisTurn];
-                if(isBasra) myBasras += 1;
-            } else {
-                table.push(card);
-            }
-
-            let myHand = room.hands[myId];
-            myHand.splice(idx, 1);
-            
-            const pList = Object.keys(room.players);
-            const nextTurn = pList[(pList.indexOf(myId) + 1) % pList.length];
-
-            let updates = {};
-            updates[`table`] = table;
-            updates[`hands/${myId}`] = myHand;
-            updates[`turn`] = nextTurn;
-            updates[`players/${myId}/captured`] = myCaptured;
-            updates[`players/${myId}/basras`] = myBasras;
-            
             db.ref(`rooms/${roomId}`).update(updates);
         }
 
-        function showBasraAnim() {
-            const b = document.getElementById('basra-alert');
-            b.style.display = 'block';
-            setTimeout(() => { b.style.display = 'none'; }, 1000);
-        }
-
-        function calculateFinalScore(r) {
-            let pKeys = Object.keys(r.players);
-            let maxCards = -1;
-            let maxPlayer = [];
-
+        function executeRedeal(r, pKeys) {
+            let currentDeck = [...r.deck];
+            let updates = {};
             pKeys.forEach(p => {
-                let len = (r.players[p].captured || []).length;
-                if(len > maxCards) { maxCards = len; maxPlayer = [p]; }
-                else if(len === maxCards) { maxPlayer.push(p); }
+                updates[`hands/${p}`] = currentDeck.splice(0, 4);
+            });
+            updates['deck'] = currentDeck;
+            db.ref(`rooms/${roomId}`).update(updates);
+        }
+
+        // 6. Rendering
+        function renderUI(r, pKeys) {
+            document.getElementById('status-bar').innerText = (r.turn === myName) ? "دورك الآن!" : `دور اللاعب: ${r.turn}`;
+            
+            // Table
+            const tableDiv = document.getElementById('table');
+            tableDiv.innerHTML = "";
+            (r.table || []).forEach(c => {
+                tableDiv.innerHTML += `<img src="${ASSETS}${c.id.toLowerCase()}" class="card-img" style="width:75px; height:105px;">`;
             });
 
-            let finalText = "";
+            // Opponents
+            const oppDiv = document.getElementById('opponents');
+            oppDiv.innerHTML = "";
             pKeys.forEach(p => {
-                let pData = r.players[p];
-                let caps = pData.captured || [];
-                let score = 0;
-
-                if(maxPlayer.includes(p) && maxCards > 0) score += 3;
-                score += (pData.basras || 0) * 10;
-
-                caps.forEach(c => {
-                    if(c.n === 'A' || c.n === 'J') score += 1;
-                    if(c.id === '2_BLACK_SPADES.PNG') score += 2;
-                    if(c.id.includes('10_RED_DIAMONDS.PNG')) score += 3;
-                });
-
-                finalText += `<div style="border-bottom:1px solid #444; padding:5px 0;">
-                    <span style="color:var(--gold)">${p}</span>: ${score} نقطة (البصرات: ${pData.basras||0})
-                </div>`;
+                if(p !== myName) {
+                    const hCount = (r.hands && r.hands[p]) ? r.hands[p].length : 0;
+                    const cCount = r.players[p].captured || 0;
+                    oppDiv.innerHTML += `
+                        <div class="player-card ${r.turn === p ? 'turn-active' : ''}">
+                            <div class="score-badge">${cCount}</div>
+                            <div style="font-size:0.8rem;">${p}</div>
+                            <div style="display:flex; justify-content:center;">
+                                ${Array(hCount).fill(0).map(()=>`<img src="${BACK}" style="width:30px; margin-left:-15px; border-radius:3px; border:1px solid #555;">`).join('')}
+                            </div>
+                        </div>`;
+                }
             });
 
-            db.ref(`rooms/${roomId}/status`).set('finished');
-            document.getElementById('finalScores').innerHTML = finalText;
-            document.getElementById('endModal').style.display = 'flex';
+            // My Hand
+            const myHandDiv = document.getElementById('my-hand');
+            myHandDiv.innerHTML = "";
+            if(r.hands && r.hands[myName]) {
+                r.hands[myName].forEach((c, i) => {
+                    const img = document.createElement('img');
+                    img.src = `${ASSETS}${c.id.toLowerCase()}`;
+                    img.className = "hand-card card-img";
+                    img.onclick = () => { if(r.turn === myName) playAction(c, i, r, pKeys); };
+                    myHandDiv.appendChild(img);
+                });
+            }
         }
 
-        function resetGame() {
-            db.ref(`rooms/${roomId}`).once('value', snap => {
-                let r = snap.val();
-                let updates = { status: 'waiting', deck: generateDeck(), table: [], hands: {} };
-                Object.keys(r.players).forEach(p => {
-                    updates[`players/${p}/captured`] = [];
-                    updates[`players/${p}/basras`] = 0;
-                });
-                db.ref(`rooms/${roomId}`).update(updates);
-                document.getElementById('endModal').style.display = 'none';
+        // 7. Gameplay Logic
+        function playAction(card, idx, room, pKeys) {
+            let table = room.table ? [...room.table] : [];
+            let myCaptured = room.players[myName].captured || 0;
+            let currentHand = [...room.hands[myName]];
+            let capturedThisTurn = [];
+
+            // Simple Logic: Match or Take All with J
+            if (card.n === 'J') {
+                capturedThisTurn = [...table];
+                table = [];
+            } else {
+                let matchIdx = table.findIndex(c => c.v === card.v);
+                if (matchIdx > -1) {
+                    capturedThisTurn.push(table[matchIdx]);
+                    table.splice(matchIdx, 1);
+                } else {
+                    table.push(card);
+                }
+            }
+
+            if(capturedThisTurn.length > 0) myCaptured += (capturedThisTurn.length + 1);
+            
+            currentHand.splice(idx, 1);
+            const nextTurn = pKeys[(pKeys.indexOf(myName) + 1) % pKeys.length];
+
+            db.ref(`rooms/${roomId}`).update({
+                table: table,
+                [`hands/${myName}`]: currentHand,
+                turn: nextTurn,
+                [`players/${myName}/captured`]: myCaptured
             });
         }
 
-        function exitRoom() { db.ref(`rooms/${roomId}`).remove(); location.reload(); }
     </script>
 </body>
 </html>
