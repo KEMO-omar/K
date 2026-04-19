@@ -3,42 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KAREEM - FOQ BA3DIH FINAL</title>
+    <title>KAREEM - FOQ BA3DIH</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap');
         :root { --neon: #00f2ff; --gold: #f1c40f; }
-        
-        body { background: radial-gradient(circle, #2c3e50, #000); color: white; font-family: 'Cairo', sans-serif; margin: 0; height: 100vh; overflow: hidden; }
+        body { background: radial-gradient(circle, #1a1a2e, #000); color: white; font-family: 'Cairo', sans-serif; margin: 0; height: 100vh; overflow: hidden; }
 
-        /* اللوبي */
         #lobby { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; align-items: center; justify-content: center; }
-        .glass { background: rgba(255,255,255,0.05); padding: 30px; border-radius: 20px; border: 2px solid var(--neon); width: 300px; text-align: center; }
+        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); padding: 30px; border-radius: 20px; border: 2px solid var(--neon); width: 300px; text-align: center; }
         
-        /* الساحة */
         #game-ui { display: none; height: 100vh; flex-direction: column; justify-content: space-between; align-items: center; padding: 20px; box-sizing: border-box; }
 
-        /* الكروت */
-        .card-container { width: 100px; height: 150px; position: absolute; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .card-container { width: 100px; height: 150px; position: absolute; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .card-img { width: 100%; height: 100%; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); object-fit: cover; }
 
         #table { width: 120px; height: 160px; border: 2px dashed rgba(255,255,255,0.3); border-radius: 15px; position: relative; }
 
-        /* أنيميشن الرمي (زي ما طلبت) */
         .throw { animation: dealIn 0.4s ease-out forwards; }
         @keyframes dealIn {
             0% { transform: translateY(300px) rotate(45deg) scale(0.5); opacity: 0; }
             100% { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
         }
 
-        /* أنيميشن اللم (لما تكسب الأرض) */
-        .collect { transform: scale(0) translateY(-600px) !important; opacity: 0; transition: 0.6s; }
-
         .active-glow { border: 2px solid var(--gold) !important; box-shadow: 0 0 20px var(--gold); }
-        .btn-neon { background: var(--neon); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 900; cursor: pointer; width: 100%; margin-top: 15px; }
-
-        #win-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 3000; flex-direction: column; align-items: center; justify-content: center; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
+        .btn-neon { background: var(--neon); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 900; cursor: pointer; width: 100%; }
     </style>
 </head>
 <body>
@@ -46,30 +37,23 @@
     <div id="lobby">
         <div class="glass">
             <h1 style="color:var(--neon)">KAREEM CARDS</h1>
-            <input type="text" id="pName" placeholder="اسمك" style="width:90%; padding:10px; margin:5px; border-radius:5px; border:none;">
-            <input type="text" id="rName" placeholder="الغرفة" style="width:90%; padding:10px; margin:5px; border-radius:5px; border:none;">
-            <input type="password" id="rPass" placeholder="الباسورد" style="width:90%; padding:10px; margin:5px; border-radius:5px; border:none;">
-            <button class="btn-neon" onclick="join()">دخول الساحة 🚀</button>
+            <input type="text" id="pName" placeholder="اسمك">
+            <input type="text" id="rName" placeholder="الغرفة">
+            <input type="password" id="rPass" placeholder="الباسورد">
+            <button class="btn-neon" onclick="join()">دخول اللعبة 🚀</button>
         </div>
     </div>
 
     <div id="game-ui">
-        <div id="opp-status" style="display:flex; gap:15px;"></div>
-
+        <div id="opp-area" style="display:flex; gap:10px;"></div>
         <div id="table"></div>
-
         <div style="text-align:center;">
-            <h3 id="msg" style="color:var(--gold); margin-bottom:10px;">انتظر دورك..</h3>
+            <h3 id="msg" style="color:var(--gold); margin-bottom:10px;"></h3>
             <div id="my-pile" style="position:relative; width:100px; height:150px; cursor:pointer;" onclick="play()">
-                <img src="https://raw.githubusercontent.com/KareemOmar0/KAREEM_BASRA/main/BACK_CARD.PNG" class="card-img" id="deck-glow">
+                <img src="https://kemo-omar.github.io/K/BACK_CARD.PNG" class="card-img" id="deck-glow">
             </div>
             <p id="my-count" style="font-weight:900; margin-top:10px;">أنا: 0</p>
         </div>
-    </div>
-
-    <div id="win-overlay">
-        <h1 id="winner-name" style="color:var(--gold); font-size:3rem;"></h1>
-        <button class="btn-neon" style="width:200px" onclick="location.reload()">لعبة جديدة</button>
     </div>
 
 <script>
@@ -83,7 +67,8 @@
     const db = firebase.database();
 
     let myId, roomId, isHost = false;
-    const RAW_URL = 'https://raw.githubusercontent.com/KareemOmar0/KAREEM_BASRA/main/';
+    // تم التعديل للمسار اللي إنت بعته
+    const BASE_URL = 'https://kemo-omar.github.io/K/';
 
     function join() {
         myId = document.getElementById('pName').value.trim();
@@ -91,22 +76,22 @@
         let pass = document.getElementById('rPass').value.trim();
         if(!myId || !roomId) return;
 
-        db.ref(`Foq_Ultimate/${roomId}`).once('value', s => {
+        db.ref(`Foq_K/${roomId}`).once('value', s => {
             let d = s.val();
             if(!d) {
                 isHost = true;
-                db.ref(`Foq_Ultimate/${roomId}`).set({ pass, status: 'wait', table: [], turn: "", pOrder: [] });
+                db.ref(`Foq_K/${roomId}`).set({ pass, status: 'wait', table: [], turn: "", pOrder: [] });
             } else if(d.pass !== pass) return alert("غلط");
             
-            db.ref(`Foq_Ultimate/${roomId}/players/${myId}`).set({ name: myId, deck: [] });
+            db.ref(`Foq_K/${roomId}/players/${myId}`).set({ name: myId, deck: [] });
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('game-ui').style.display = 'flex';
-            start();
+            init();
         });
     }
 
-    function start() {
-        db.ref(`Foq_Ultimate/${roomId}`).on('value', s => {
+    function init() {
+        db.ref(`Foq_K/${roomId}`).on('value', s => {
             const r = s.val(); if(!r) return;
             const players = Object.keys(r.players || {});
 
@@ -120,7 +105,7 @@
                 let up = { status: 'play', turn: players[0], pOrder: players };
                 let per = Math.floor(deck.length / players.length);
                 players.forEach((p, i) => up[`players/${p}/deck`] = deck.slice(i*per, (i+1)*per));
-                db.ref(`Foq_Ultimate/${roomId}`).update(up);
+                db.ref(`Foq_K/${roomId}`).update(up);
             }
             draw(r, players);
         });
@@ -128,50 +113,34 @@
 
     function draw(r, p) {
         const table = r.table || [];
-        const oppDiv = document.getElementById('opp-status');
-        oppDiv.innerHTML = "";
+        const oppArea = document.getElementById('opp-area');
+        oppArea.innerHTML = "";
 
         p.forEach(pk => {
             let count = (r.players[pk].deck || []).length;
             if(pk === myId) {
-                document.getElementById('my-count').innerText = `أنا: ${count} كارت`;
+                document.getElementById('my-count').innerText = `أنا: ${count}`;
                 document.getElementById('deck-glow').className = `card-img ${r.turn === myId ? 'active-glow' : ''}`;
-                document.getElementById('msg').innerText = r.turn === myId ? "دورك ارمي!" : "انتظر..";
+                document.getElementById('msg').innerText = r.turn === myId ? "دورك!" : "انتظر..";
             } else {
-                oppDiv.innerHTML += `<div class="glass ${r.turn === pk ? 'active-glow' : ''}" style="padding:5px 15px;">${pk}: ${count}</div>`;
+                oppArea.innerHTML += `<div class="glass" style="padding:5px 15px;">${pk}: ${count}</div>`;
             }
         });
 
         const tableDiv = document.getElementById('table');
-        if(table.length === 0 && tableDiv.children.length > 0) {
-            Array.from(tableDiv.children).forEach(c => c.classList.add('collect'));
-            setTimeout(() => { tableDiv.innerHTML = ""; }, 500);
-        } else {
-            tableDiv.innerHTML = "";
-            table.slice(-4).forEach((c, i) => {
-                let card = document.createElement('div');
-                card.className = 'card-container throw';
-                card.style.zIndex = i;
-                card.style.transform = `rotate(${i*5-10}deg)`;
-                // هنا بنستدعي الصورة زي ما طلبت بالظبط بالرابط الكامل
-                card.innerHTML = `<img src="${RAW_URL + c.id}" class="card-img">`;
-                tableDiv.appendChild(card);
-            });
-        }
-
-        if(r.status === 'play') {
-            p.forEach(pk => {
-                if((r.players[pk].deck || []).length === 0 && table.length === 0) {
-                    let win = p.find(x => x !== pk) || pk;
-                    document.getElementById('winner-name').innerText = `مبروك يا ${win}! 🎉`;
-                    document.getElementById('win-overlay').style.display = 'flex';
-                }
-            });
-        }
+        tableDiv.innerHTML = "";
+        table.slice(-4).forEach((c, i) => {
+            let card = document.createElement('div');
+            card.className = 'card-container throw';
+            card.style.zIndex = i;
+            card.style.transform = `rotate(${i*5-10}deg)`;
+            card.innerHTML = `<img src="${BASE_URL + c.id}" class="card-img">`;
+            tableDiv.appendChild(card);
+        });
     }
 
     function play() {
-        db.ref(`Foq_Ultimate/${roomId}`).once('value', s => {
+        db.ref(`Foq_K/${roomId}`).once('value', s => {
             const r = s.val();
             if(r.turn !== myId || r.status !== 'play') return;
             let deck = r.players[myId].deck || [];
@@ -194,7 +163,7 @@
             up[`players/${myId}/deck`] = deck;
             up['table'] = table;
             up['turn'] = next;
-            db.ref(`Foq_Ultimate/${roomId}`).update(up);
+            db.ref(`Foq_K/${roomId}`).update(up);
         });
     }
 </script>
