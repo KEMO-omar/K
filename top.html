@@ -3,56 +3,208 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KAREEM - FOQ BA3DIH</title>
+    <title>KAREEM - FOQ BA3DIH PRO</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap');
-        :root { --neon: #00f2ff; --gold: #f1c40f; }
-        body { background: radial-gradient(circle, #1a1a2e, #000); color: white; font-family: 'Cairo', sans-serif; margin: 0; height: 100vh; overflow: hidden; }
-
-        #lobby { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; align-items: center; justify-content: center; }
-        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); padding: 30px; border-radius: 20px; border: 2px solid var(--neon); width: 300px; text-align: center; }
         
-        #game-ui { display: none; height: 100vh; flex-direction: column; justify-content: space-between; align-items: center; padding: 20px; box-sizing: border-box; }
-
-        .card-container { width: 100px; height: 150px; position: absolute; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .card-img { width: 100%; height: 100%; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); object-fit: cover; }
-
-        #table { width: 120px; height: 160px; border: 2px dashed rgba(255,255,255,0.3); border-radius: 15px; position: relative; }
-
-        .throw { animation: dealIn 0.4s ease-out forwards; }
-        @keyframes dealIn {
-            0% { transform: translateY(300px) rotate(45deg) scale(0.5); opacity: 0; }
-            100% { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
+        :root {
+            --neon: #00f2ff;
+            --gold: #f1c40f;
+            --bg: #050505;
         }
 
-        .active-glow { border: 2px solid var(--gold) !important; box-shadow: 0 0 20px var(--gold); }
-        input { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
-        .btn-neon { background: var(--neon); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 900; cursor: pointer; width: 100%; }
+        body {
+            background-color: var(--bg);
+            background-image: radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
+                              radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px);
+            background-size: 550px 550px, 350px 350px;
+            background-position: 0 0, 40px 60px;
+            color: white;
+            font-family: 'Cairo', sans-serif;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Lobby Style */
+        #lobby {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 5000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            padding: 40px;
+            border-radius: 30px;
+            border: 1px solid var(--neon);
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
+            text-align: center;
+            width: 320px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 12px;
+            border: 1px solid #333;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            text-align: center;
+            outline: none;
+        }
+
+        input:focus { border-color: var(--neon); }
+
+        .btn-action {
+            background: var(--neon);
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-weight: 900;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn-action:hover { box-shadow: 0 0 20px var(--neon); transform: translateY(-2px); }
+
+        /* Game Board */
+        #game-ui {
+            display: none;
+            width: 100%;
+            height: 100vh;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Table Area */
+        #table-zone {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        #table-base {
+            width: 140px;
+            height: 190px;
+            border: 2px dashed rgba(255, 242, 255, 0.1);
+            border-radius: 20px;
+            position: relative;
+        }
+
+        .card {
+            width: 110px;
+            height: 160px;
+            position: absolute;
+            border-radius: 12px;
+            background: #222;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .card img {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            pointer-events: none;
+        }
+
+        /* Animations */
+        .anim-throw { animation: cardThrow 0.4s ease-out forwards; }
+        @keyframes cardThrow {
+            0% { transform: translateY(400px) rotate(45deg) scale(0.5); opacity: 0; }
+            100% { transform: translateY(0) rotate(var(--r)) scale(1); opacity: 1; }
+        }
+
+        .anim-collect { transform: scale(0) translateY(-500px) rotate(360deg) !important; opacity: 0; }
+
+        /* Player UI */
+        .player-bar {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 50px;
+        }
+
+        .active-turn {
+            border: 2px solid var(--gold) !important;
+            box-shadow: 0 0 15px var(--gold);
+        }
+
+        #my-hand {
+            position: relative;
+            cursor: pointer;
+            width: 110px;
+            height: 160px;
+            margin: 0 auto;
+        }
+
+        .badge {
+            background: var(--neon);
+            color: #000;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        #status-msg {
+            color: var(--gold);
+            font-size: 1.2rem;
+            font-weight: 900;
+            text-shadow: 0 0 10px rgba(241, 196, 15, 0.5);
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
 
     <div id="lobby">
-        <div class="glass">
-            <h1 style="color:var(--neon)">KAREEM CARDS</h1>
-            <input type="text" id="pName" placeholder="اسمك">
-            <input type="text" id="rName" placeholder="الغرفة">
-            <input type="password" id="rPass" placeholder="الباسورد">
-            <button class="btn-neon" onclick="join()">دخول اللعبة 🚀</button>
+        <div class="glass-panel">
+            <h1 style="color:var(--neon); margin:0 0 20px 0; letter-spacing: 2px;">KAREEM FOQ</h1>
+            <input type="text" id="pName" placeholder="إسم اللاعب">
+            <input type="text" id="rName" placeholder="اسم الغرفة">
+            <input type="password" id="rPass" placeholder="كلمة السر">
+            <button class="btn-action" onclick="joinGame()">دخول الساحة ✨</button>
         </div>
     </div>
 
     <div id="game-ui">
-        <div id="opp-area" style="display:flex; gap:10px;"></div>
-        <div id="table"></div>
-        <div style="text-align:center;">
-            <h3 id="msg" style="color:var(--gold); margin-bottom:10px;"></h3>
-            <div id="my-pile" style="position:relative; width:100px; height:150px; cursor:pointer;" onclick="play()">
-                <img src="https://kemo-omar.github.io/K/BACK_CARD.PNG" class="card-img" id="deck-glow">
+        <div id="opponents" class="player-bar"></div>
+
+        <div id="table-zone">
+            <div id="table-base"></div>
+        </div>
+
+        <div style="text-align:center; padding-bottom: 20px;">
+            <div id="status-msg">انتظر دورك..</div>
+            <div id="my-hand" onclick="playCard()">
+                <img src="https://kemo-omar.github.io/K/BACK_CARD.PNG" class="card" id="deck-style" style="position:static;">
             </div>
-            <p id="my-count" style="font-weight:900; margin-top:10px;">أنا: 0</p>
+            <div style="margin-top:10px;">
+                <span id="my-name-tag" style="font-weight:bold;">أنا</span> 
+                <span class="badge" id="my-count-tag">0</span>
+            </div>
         </div>
     </div>
 
@@ -67,31 +219,30 @@
     const db = firebase.database();
 
     let myId, roomId, isHost = false;
-    // تم التعديل للمسار اللي إنت بعته
     const BASE_URL = 'https://kemo-omar.github.io/K/';
 
-    function join() {
+    function joinGame() {
         myId = document.getElementById('pName').value.trim();
         roomId = document.getElementById('rName').value.trim();
         let pass = document.getElementById('rPass').value.trim();
         if(!myId || !roomId) return;
 
-        db.ref(`Foq_K/${roomId}`).once('value', s => {
+        db.ref(`Karem_Pro_V1/${roomId}`).once('value', s => {
             let d = s.val();
             if(!d) {
                 isHost = true;
-                db.ref(`Foq_K/${roomId}`).set({ pass, status: 'wait', table: [], turn: "", pOrder: [] });
-            } else if(d.pass !== pass) return alert("غلط");
+                db.ref(`Karem_Pro_V1/${roomId}`).set({ pass, status: 'wait', table: [], turn: "", pOrder: [] });
+            } else if(d.pass !== pass) return alert("كلمة السر غلط يا بطل!");
             
-            db.ref(`Foq_K/${roomId}/players/${myId}`).set({ name: myId, deck: [] });
+            db.ref(`Karem_Pro_V1/${roomId}/players/${myId}`).set({ name: myId, deck: [] });
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('game-ui').style.display = 'flex';
-            init();
+            listenGame();
         });
     }
 
-    function init() {
-        db.ref(`Foq_K/${roomId}`).on('value', s => {
+    function listenGame() {
+        db.ref(`Karem_Pro_V1/${roomId}`).on('value', s => {
             const r = s.val(); if(!r) return;
             const players = Object.keys(r.players || {});
 
@@ -102,45 +253,58 @@
                 suits.forEach(s => values.forEach(v => deck.push({ id: `${v}_${s}.PNG`, v })));
                 deck.sort(() => Math.random() - 0.5);
 
-                let up = { status: 'play', turn: players[0], pOrder: players };
                 let per = Math.floor(deck.length / players.length);
+                let up = { status: 'play', turn: players[0], pOrder: players };
                 players.forEach((p, i) => up[`players/${p}/deck`] = deck.slice(i*per, (i+1)*per));
-                db.ref(`Foq_K/${roomId}`).update(up);
+                db.ref(`Karem_Pro_V1/${roomId}`).update(up);
             }
-            draw(r, players);
+            updateScene(r, players);
         });
     }
 
-    function draw(r, p) {
+    function updateScene(r, p) {
         const table = r.table || [];
-        const oppArea = document.getElementById('opp-area');
-        oppArea.innerHTML = "";
+        const oppDiv = document.getElementById('opponents');
+        oppDiv.innerHTML = "";
 
         p.forEach(pk => {
             let count = (r.players[pk].deck || []).length;
             if(pk === myId) {
-                document.getElementById('my-count').innerText = `أنا: ${count}`;
-                document.getElementById('deck-glow').className = `card-img ${r.turn === myId ? 'active-glow' : ''}`;
-                document.getElementById('msg').innerText = r.turn === myId ? "دورك!" : "انتظر..";
+                document.getElementById('my-count-tag').innerText = count;
+                document.getElementById('deck-style').classList.toggle('active-turn', r.turn === myId);
+                document.getElementById('status-msg').innerText = r.turn === myId ? "دورك الآن.. ارمي!" : "انتظر المنافس..";
             } else {
-                oppArea.innerHTML += `<div class="glass" style="padding:5px 15px;">${pk}: ${count}</div>`;
+                oppDiv.innerHTML += `
+                    <div style="text-align:center;">
+                        <div class="badge ${r.turn === pk ? 'active-turn' : ''}" style="background:rgba(255,255,255,0.1); color:white; padding:5px 15px;">
+                            ${pk}: ${count}
+                        </div>
+                    </div>`;
             }
         });
 
-        const tableDiv = document.getElementById('table');
-        tableDiv.innerHTML = "";
-        table.slice(-4).forEach((c, i) => {
-            let card = document.createElement('div');
-            card.className = 'card-container throw';
-            card.style.zIndex = i;
-            card.style.transform = `rotate(${i*5-10}deg)`;
-            card.innerHTML = `<img src="${BASE_URL + c.id}" class="card-img">`;
-            tableDiv.appendChild(card);
-        });
+        const tableBase = document.getElementById('table-base');
+        if(table.length === 0 && tableBase.children.length > 0) {
+            Array.from(tableBase.children).forEach(c => c.classList.add('anim-collect'));
+            setTimeout(() => { tableBase.innerHTML = ""; }, 500);
+        } else {
+            // تحديث كروت التربيزة فقط لو فيه جديد
+            if(tableBase.children.length < table.length) {
+                table.slice(tableBase.children.length).forEach((c, i) => {
+                    let img = document.createElement('img');
+                    img.src = BASE_URL + c.id;
+                    img.className = 'card anim-throw';
+                    let rot = Math.random() * 20 - 10;
+                    img.style.setProperty('--r', `${rot}deg`);
+                    img.style.zIndex = tableBase.children.length;
+                    tableBase.appendChild(img);
+                });
+            }
+        }
     }
 
-    function play() {
-        db.ref(`Foq_K/${roomId}`).once('value', s => {
+    function playCard() {
+        db.ref(`Karem_Pro_V1/${roomId}`).once('value', s => {
             const r = s.val();
             if(r.turn !== myId || r.status !== 'play') return;
             let deck = r.players[myId].deck || [];
@@ -154,16 +318,17 @@
             let up = {};
             if(last && last.v === card.v) {
                 table.push(card);
-                deck.push(...table);
+                deck.push(...table); // لقط الأرض!
                 table = [];
-                next = myId;
+                next = myId; // العب تاني
             } else {
                 table.push(card);
             }
+
             up[`players/${myId}/deck`] = deck;
             up['table'] = table;
             up['turn'] = next;
-            db.ref(`Foq_K/${roomId}`).update(up);
+            db.ref(`Karem_Pro_V1/${roomId}`).update(up);
         });
     }
 </script>
