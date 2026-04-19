@@ -3,73 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KAREEM - FOQ BA3DIH OMNI</title>
+    <title>KAREEM - FOQ BA3DIH 3D</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap');
-        :root { --neon: #00f2ff; --gold: #f1c40f; --danger: #ff4d4d; }
+        :root { --neon: #00f2ff; --gold: #f1c40f; }
         
-        body { background: #080808; color: white; font-family: 'Cairo', sans-serif; margin: 0; height: 100vh; overflow: hidden; }
+        body { background: #050505; color: white; font-family: 'Cairo', sans-serif; margin: 0; height: 100vh; overflow: hidden; }
 
-        /* اللوبي نيون */
-        #lobby { position: fixed; inset: 0; background: radial-gradient(circle, #1a1a2e, #000); z-index: 2000; display: flex; align-items: center; justify-content: center; }
-        .glass-card { background: rgba(255,255,255,0.03); backdrop-filter: blur(15px); padding: 40px; border-radius: 30px; border: 1px solid var(--neon); width: 350px; text-align: center; box-shadow: 0 0 30px rgba(0,242,255,0.2); }
-        input { width: 90%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #333; color: white; border-radius: 12px; text-align: center; }
-        .btn-play { background: linear-gradient(45deg, var(--neon), #bc13fe); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 900; cursor: pointer; width: 100%; margin-top: 15px; font-size: 1.1rem; }
+        /* اللوبي */
+        #lobby { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; align-items: center; justify-content: center; }
+        .glass { background: rgba(255,255,255,0.05); padding: 30px; border-radius: 20px; border: 1px solid var(--neon); width: 300px; text-align: center; }
+        input { width: 90%; padding: 10px; margin: 10px 0; background: #111; border: 1px solid #333; color: white; border-radius: 8px; text-align: center; }
+        .btn-neon { background: var(--neon); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 900; cursor: pointer; width: 100%; }
 
-        /* ساحة اللعب */
-        #game-ui { display: none; height: 100vh; flex-direction: column; justify-content: space-between; align-items: center; padding: 20px; box-sizing: border-box; }
+        /* المسرح */
+        #game-ui { display: none; height: 100vh; flex-direction: column; align-items: center; justify-content: space-between; padding: 20px; box-sizing: border-box; perspective: 1000px; }
         
-        #table { position: relative; width: 120px; height: 170px; border: 2px dashed #333; border-radius: 15px; display: flex; align-items: center; justify-content: center; perspective: 1000px; }
+        /* الكروت والأنيميشن */
+        .card { width: 90px; height: 130px; border-radius: 10px; position: absolute; background-size: cover; background-position: center; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .back-side { background-image: url('https://raw.githubusercontent.com/KareemOmar0/KAREEM_BASRA/main/BACK_CARD.PNG'); }
         
-        /* الكروت */
-        .card { width: 100px; height: 145px; border-radius: 10px; position: absolute; background-size: cover; background-position: center; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-        .my-card-stack { width: 100px; height: 145px; background: url('https://raw.githubusercontent.com/KareemOmar0/KAREEM_BASRA/main/BACK_CARD.PNG') center/cover; border-radius: 10px; border: 2px solid var(--neon); cursor: pointer; position: relative; }
-        .active-turn { animation: pulse-neon 1.5s infinite alternate; border-color: var(--gold) !important; box-shadow: 0 0 20px var(--gold); }
+        #table { width: 110px; height: 150px; border: 2px dashed #333; border-radius: 15px; position: relative; }
         
-        @keyframes pulse-neon { from { opacity: 0.7; } to { opacity: 1; transform: scale(1.05); } }
+        /* تأثير الطيران */
+        @keyframes throwToTable {
+            0% { transform: translateY(200px) rotateX(0deg); opacity: 0; }
+            100% { transform: translateY(0) rotateX(0deg); opacity: 1; }
+        }
+        .throw-anim { animation: throwToTable 0.5s ease-out; }
 
-        /* اللاعبين */
-        .players-container { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; width: 100%; }
-        .p-box { background: rgba(255,255,255,0.05); padding: 5px 15px; border-radius: 20px; border: 1px solid #222; text-align: center; }
+        .active-glow { border: 2px solid var(--gold) !important; box-shadow: 0 0 20px var(--gold) !important; animation: pulse 1s infinite alternate; }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
 
-        /* شاشة النهاية */
+        .p-info { background: #111; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; }
         #win-screen { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 3000; flex-direction: column; align-items: center; justify-content: center; }
-        .win-btn { width: 180px; margin: 10px; padding: 12px; border-radius: 10px; font-weight: 900; cursor: pointer; border: none; }
     </style>
 </head>
 <body>
 
     <div id="lobby">
-        <div class="glass-card">
-            <h1 style="color: var(--neon); margin: 0;">فوق بعضيه</h1>
-            <p style="color: #888; margin-bottom: 20px;">تحدي كبار المبرمجين 🃏</p>
-            <input type="text" id="pName" placeholder="اسمك الفني">
-            <input type="text" id="rName" placeholder="اسم الغرفة">
-            <input type="password" id="rPass" placeholder="كلمة السر">
-            <button class="btn-play" onclick="joinGame()">دخول الساحة</button>
+        <div class="glass">
+            <h1 style="color:var(--neon)">فوق بعضيه</h1>
+            <input type="text" id="pName" placeholder="اسمك">
+            <input type="text" id="rName" placeholder="الغرفة">
+            <input type="password" id="rPass" placeholder="الباسورد">
+            <button class="btn-neon" onclick="join()">ابدأ الساحة</button>
         </div>
     </div>
 
     <div id="game-ui">
-        <div class="players-container" id="others-area"></div>
+        <div id="opp-list" style="display:flex; gap:10px;"></div>
+        
+        <div id="table"></div>
 
-        <div id="table">
-            </div>
-
-        <div style="text-align: center;">
-            <div id="turn-msg" style="margin-bottom: 10px; color: var(--gold); font-weight: 900;"></div>
-            <div id="my-card-stack" class="my-card-stack" onclick="handlePlay()"></div>
-            <div id="my-info" style="margin-top: 10px; font-weight: bold;">أنا: 0</div>
+        <div style="text-align:center;">
+            <div id="turn-msg" style="color:var(--gold); font-weight:900; margin-bottom:10px;"></div>
+            <div id="my-deck-btn" class="card back-side" style="position:relative; cursor:pointer;" onclick="play()"></div>
+            <div id="my-label" style="margin-top:10px;">أنا: 0 ورقة</div>
         </div>
     </div>
 
     <div id="win-screen">
-        <h1 id="winner-text" style="color: var(--gold); font-size: 3rem; text-shadow: 0 0 20px var(--gold);"></h1>
-        <p style="font-size: 1.5rem;">لقد سيطر على الساحة! 🎉</p>
-        <button class="win-btn" style="background: var(--neon);" onclick="location.reload()">لعبة جديدة</button>
-        <button class="win-btn" style="background: #333; color: white;" onclick="window.close()">خروج</button>
+        <h1 id="winner-text" style="color:var(--gold); font-size:3rem;"></h1>
+        <button class="btn-neon" style="width:200px;" onclick="location.reload()">لعبة جديدة</button>
     </div>
 
 <script>
@@ -85,149 +83,122 @@
     let myId, roomId, isHost = false;
     const IMG_URL = 'https://raw.githubusercontent.com/KareemOmar0/KAREEM_BASRA/main/';
 
-    function joinGame() {
+    function join() {
         myId = document.getElementById('pName').value.trim();
         roomId = document.getElementById('rName').value.trim();
-        const pass = document.getElementById('rPass').value.trim();
-        if(!myId || !roomId || !pass) return alert("املا بياناتك يا نجم!");
+        let pass = document.getElementById('rPass').value.trim();
+        if(!myId || !roomId) return;
 
-        const ref = db.ref(`Foq_Multiplayer/${roomId}`);
-        ref.once('value', s => {
-            const d = s.val();
+        db.ref(`Foq_3D/${roomId}`).once('value', s => {
+            let d = s.val();
             if(!d) {
                 isHost = true;
-                ref.set({ pass, status: 'waiting', table: [], turn: "", pOrder: [] });
-            } else if(d.pass !== pass) return alert("الباسورد غلط!");
+                db.ref(`Foq_3D/${roomId}`).set({ pass, status: 'wait', table: [], turn: "", pOrder: [] });
+            } else if(d.pass !== pass) return alert("خطأ");
             
-            db.ref(`Foq_Multiplayer/${roomId}/players/${myId}`).set({ name: myId, deck: [] });
+            db.ref(`Foq_3D/${roomId}/players/${myId}`).set({ name: myId, deck: [] });
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('game-ui').style.display = 'flex';
-            startListening();
+            listen();
         });
     }
 
     function createDeck() {
+        // الأسماء مطابقة للي في السكرين شوت بالظبط
         const suits = ['BLACK_CLUBS', 'BLACK_SPADES', 'RED_DIAMONDS', 'RED_HEARTS'];
         const vals = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
         let d = [];
-        suits.forEach(s => vals.forEach(v => d.push({ id: `${v}_${s}.PNG`, v })));
+        suits.forEach(s => vals.forEach(v => d.push({ id: `${v}_${s}.PNG`, v: v })));
         return d.sort(() => Math.random() - 0.5);
     }
 
-    function startListening() {
-        db.ref(`Foq_Multiplayer/${roomId}`).on('value', s => {
+    function listen() {
+        db.ref(`Foq_3D/${roomId}`).on('value', s => {
             const r = s.val(); if(!r) return;
             const pKeys = Object.keys(r.players || {});
 
-            if(isHost && r.status === 'waiting' && pKeys.length >= 2) {
-                // زرار يدوي أو أوتوماتيكي للبداية (هنخليها لما يوصلوا 2 أو أكتر)
-                if(confirm(`هل تريد بدء اللعبة مع ${pKeys.length} لاعبين؟`)) {
-                    const deck = createDeck();
-                    const perPlayer = Math.floor(deck.length / pKeys.length);
-                    let updates = { status: 'playing', turn: pKeys[0], pOrder: pKeys };
-                    pKeys.forEach((p, i) => {
-                        updates[`players/${p}/deck`] = deck.slice(i * perPlayer, (i + 1) * perPlayer);
-                    });
-                    db.ref(`Foq_Multiplayer/${roomId}`).update(updates);
-                }
+            if(isHost && r.status === 'wait' && pKeys.length >= 2) {
+                const deck = createDeck();
+                const per = Math.floor(deck.length / pKeys.length);
+                let up = { status: 'play', turn: pKeys[0], pOrder: pKeys };
+                pKeys.forEach((p, i) => up[`players/${p}/deck`] = deck.slice(i*per, (i+1)*per));
+                db.ref(`Foq_3D/${roomId}`).update(up);
             }
-            syncGame(r);
+            sync(r, pKeys);
         });
     }
 
-    function syncGame(r) {
+    function sync(r, p) {
         const table = r.table || [];
-        const players = r.players || {};
-        const othersArea = document.getElementById('others-area');
-        othersArea.innerHTML = "";
+        const oppArea = document.getElementById('opp-list');
+        oppArea.innerHTML = "";
 
-        // عرض باقي اللاعبين
-        Object.keys(players).forEach(pKey => {
-            if(pKey === myId) {
-                const myDeck = players[myId].deck || [];
-                document.getElementById('my-info').innerText = `أنا: ${myDeck.length} ورقة`;
-                document.getElementById('my-card-stack').className = `my-card-stack ${r.turn === myId ? 'active-turn' : ''}`;
-                document.getElementById('turn-msg').innerText = r.turn === myId ? "دورك.. اخطف الأرض!" : "انتظر المنافسين..";
-                
-                // لو ورقي خلص.. التانيين كسبوا
-                if(r.status === 'playing' && myDeck.length === 0 && table.length === 0) checkWinner(r);
+        p.forEach(pk => {
+            let deckCount = (r.players[pk].deck || []).length;
+            if(pk === myId) {
+                document.getElementById('my-label').innerText = `أنا: ${deckCount} ورقة`;
+                document.getElementById('my-deck-btn').className = `card back-side ${r.turn === myId ? 'active-glow' : ''}`;
+                document.getElementById('turn-msg').innerText = r.turn === myId ? "دورك!" : "انتظر..";
             } else {
-                const div = document.createElement('div');
-                div.className = `p-box ${r.turn === pKey ? 'active-turn' : ''}`;
-                div.innerHTML = `<div>${pKey}</div><div style="color:var(--neon)">${(players[pKey].deck || []).length}</div>`;
-                othersArea.appendChild(div);
+                let div = document.createElement('div');
+                div.className = `p-info ${r.turn === pk ? 'active-glow' : ''}`;
+                div.innerHTML = `<b>${pk}</b>: ${deckCount}`;
+                oppArea.appendChild(div);
             }
         });
 
-        // عرض الأرض (التربيزة)
+        // الأرض
         const tableDiv = document.getElementById('table');
         tableDiv.innerHTML = "";
-        table.slice(-4).forEach((c, i) => { // آخر 4 كروت بس عشان الشكل
-            const cardImg = document.createElement('div');
-            cardImg.className = 'card';
-            cardImg.style.backgroundImage = `url('${IMG_URL + c.id}')`;
-            cardImg.style.transform = `rotate(${i * 8 - 12}deg) translate(${i * 2}px, ${i * 2}px)`;
-            cardImg.style.zIndex = i;
-            tableDiv.appendChild(cardImg);
+        table.slice(-3).forEach((c, i) => {
+            let img = document.createElement('div');
+            img.className = 'card throw-anim';
+            img.style.backgroundImage = `url('${IMG_URL + c.id}')`;
+            img.style.transform = `rotate(${i*5-5}deg)`;
+            tableDiv.appendChild(img);
         });
 
-        if(r.status === 'playing') checkWinner(r);
+        // قاعدة الفوز (لو ورقه خلص التاني يكسب)
+        if(r.status === 'play') {
+            p.forEach(pk => {
+                if((r.players[pk].deck || []).length === 0 && table.length === 0) {
+                    let winner = p.find(x => x !== pk); // في حالة 2
+                    document.getElementById('winner-text').innerText = `كسبت يا ${winner}!`;
+                    document.getElementById('win-screen').style.display = 'flex';
+                }
+            });
+        }
     }
 
-    function handlePlay() {
-        db.ref(`Foq_Multiplayer/${roomId}`).once('value', s => {
+    function play() {
+        db.ref(`Foq_3D/${roomId}`).once('value', s => {
             const r = s.val();
-            if(r.turn !== myId || r.status !== 'playing') return;
+            if(r.turn !== myId || r.status !== 'play') return;
 
             let myDeck = r.players[myId].deck || [];
             if(myDeck.length === 0) return;
 
             let card = myDeck.shift();
             let table = r.table || [];
-            let last = table.length > 0 ? table[table.length - 1] : null;
-            
-            // تحديد اللاعب التالي في القائمة
-            const order = r.pOrder;
-            let nextIdx = (order.indexOf(myId) + 1) % order.length;
-            let nextTurn = order[nextIdx];
+            let last = table.length > 0 ? table[table.length-1] : null;
+            let order = r.pOrder;
+            let next = order[(order.indexOf(myId)+1) % order.length];
 
-            let updates = {};
-            // قاعدة اللقط (فوق بعضيه)
+            let up = {};
             if(last && last.v === card.v) {
                 table.push(card);
-                myDeck.push(...table); // يلم الورق كله
+                myDeck.push(...table); // يلم الأرض كلها
                 table = [];
-                nextTurn = myId; // العب تاني كجائزة
-                alert("لقطة جاااامدة! 💥");
+                next = myId; // يلعب تاني
             } else {
                 table.push(card);
             }
 
-            updates[`players/${myId}/deck`] = myDeck;
-            updates[`table`] = table;
-            updates[`turn`] = nextTurn;
-            db.ref(`Foq_Multiplayer/${roomId}`).update(updates);
+            up[`players/${myId}/deck`] = myDeck;
+            up['table'] = table;
+            up['turn'] = next;
+            db.ref(`Foq_3D/${roomId}`).update(up);
         });
-    }
-
-    function checkWinner(r) {
-        const order = r.pOrder || [];
-        // في نظام "فوق بعضيه"، لو حد ورقه خلص يبقى التانيين اللي لسه معاهم ورق هما اللي مكملين
-        // بس حسب طلبك: لو واحد ورقه خلص، الباقي يكسب.
-        let loser = order.find(p => (r.players[p].deck || []).length === 0 && (r.table || []).length === 0);
-        if(loser) {
-            let winners = order.filter(p => p !== loser);
-            document.getElementById('winner-text').innerText = winners.join(' & ');
-            document.getElementById('win-screen').style.display = 'flex';
-            if(isHost) setTimeout(() => db.ref(`Foq_Multiplayer/${roomId}`).remove(), 10000);
-        }
-        
-        // لو واحد جمع الـ 52 كلهم (مكسب ساحق)
-        let pro = order.find(p => (r.players[p].deck || []).length === 52);
-        if(pro) {
-            document.getElementById('winner-text').innerText = pro;
-            document.getElementById('win-screen').style.display = 'flex';
-        }
     }
 </script>
 </body>
