@@ -8,14 +8,13 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
-        :root { --neon-cyan: #00f2ff; --neon-gold: #f1c40f; --neon-purple: #bc13fe; }
+        :root { --neon-cyan: #00f2ff; --neon-gold: #f1c40f; --neon-purple: #bc13fe; --neon-red: #ff003c; }
 
         body {
             background: #050505 url('https://www.transparenttextures.com/patterns/stardust.png');
             color: white; font-family: 'Cairo', sans-serif; margin: 0; overflow: hidden; height: 100vh;
         }
 
-        /* --- واجهة الدخول (Lobby) --- */
         #lobby { height: 100%; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #1a1a2e, #000); }
         .glass-box {
             background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px);
@@ -34,14 +33,12 @@
         }
         .btn:hover { transform: scale(1.05); box-shadow: 0 0 25px var(--neon-cyan); }
 
-        /* --- شاشة اللعبة --- */
         #game-screen { display: none; flex-direction: column; height: 100%; }
         .top-nav { padding: 15px; background: rgba(0,0,0,0.9); display: flex; justify-content: space-between; border-bottom: 2px solid var(--neon-cyan); }
 
         #main-table { flex-grow: 1; position: relative; perspective: 1000px; display: flex; justify-content: center; align-items: center; }
         .card { width: 80px; height: 115px; border-radius: 8px; position: absolute; transition: 0.6s cubic-bezier(0.23, 1, 0.32, 1); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         
-        /* أماكن اللاعبين */
         .player-slot { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .slot-top { top: 20px; left: 50%; transform: translateX(-50%); }
         .slot-left { left: 30px; top: 40%; }
@@ -61,7 +58,6 @@
         .captured-visual { position: absolute; right: 30px; bottom: 30px; text-align: center; }
         .pile-stack { width: 60px; height: 90px; background: #111; border: 1px dashed var(--neon-cyan); border-radius: 5px; }
 
-        /* النتائج */
         .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
         .score-card { background: #1a1a1a; padding: 30px; border-radius: 20px; border: 2px solid var(--neon-gold); width: 80%; text-align: center; }
         table { width: 100%; border-collapse: collapse; margin: 20px 0; }
@@ -88,13 +84,11 @@
     <div id="game-screen">
         <div class="top-nav">
             <div id="room-title">الغرفة: -</div>
-            <div id="game-status" style="color:var(--neon-gold)">بانتظار الاكتمال...</div>
+            <div id="game-status" style="color:var(--neon-gold)">بانتظار اللاعبين...</div>
             <div id="deck-count">المتبقي: 52</div>
         </div>
-
         <div id="main-table"></div>
         <div id="other-players"></div>
-
         <div class="my-zone">
             <div id="my-turn-msg" style="color:var(--neon-gold); font-weight: 900; display:none">دورك الآن! ⚡</div>
             <div class="hand" id="my-hand"></div>
@@ -127,15 +121,29 @@
         const db = firebase.database();
 
         let myId = "", roomId = "", myPass = "", isHost = false;
-        const BACK_IMG = 'BACK_CARD.PNG';
+        const BACK_IMG = 'https://raw.githubusercontent.com/KareemOmar0/KAREEM_BASRA/main/BACK_CARD.PNG'; // تأكد من المسار الصحيح
 
-        function joinRoom() {
+        // عند تحميل الصفحة، حاول استعادة الجلسة
+        window.onload = () => {
+            const saved = JSON.parse(localStorage.getItem('basra_session'));
+            if(saved) {
+                document.getElementById('pName').value = saved.pName;
+                document.getElementById('rName').value = saved.rName;
+                document.getElementById('rPass').value = saved.rPass;
+                joinRoom(true);
+            }
+        };
+
+        function joinRoom(auto = false) {
             myId = document.getElementById('pName').value.trim();
             roomId = document.getElementById('rName').value.trim();
             myPass = document.getElementById('rPass').value.trim();
             const max = parseInt(document.getElementById('pMax').value);
 
-            if(!myId || !roomId || !myPass) return alert("امسح وشك وكمل البيانات!");
+            if(!myId || !roomId || !myPass) return auto ? null : alert("كمل البيانات يا كيمو!");
+
+            // حفظ البيانات للـ Refresh
+            localStorage.setItem('basra_session', JSON.stringify({ pName: myId, rName: roomId, rPass: myPass }));
 
             const rRef = db.ref(`rooms/${roomId}`);
             rRef.once('value', snap => {
@@ -143,19 +151,19 @@
                 if(!r) {
                     isHost = true;
                     rRef.set({
-                        pass: myPass, status: 'waiting', max: max,
+                        pass: myPass, status: 'waiting', max: max, hostId: myId,
                         deck: generateDeck(), table: [], turn: myId, lastTaker: ""
                     }).then(() => enterRoom());
                 } else {
                     if(r.pass !== myPass) return alert("كلمة السر غلط!");
-                    if(Object.keys(r.players || {}).length >= r.max) return alert("الغرفة كاملة!");
+                    if(r.hostId === myId) isHost = true; // استرجاع منصب الهوست لو عمل ريفريش
                     enterRoom();
                 }
             });
         }
 
         function enterRoom() {
-            db.ref(`rooms/${roomId}/players/${myId}`).set({ basras: 0, captured: [], score: 0 });
+            db.ref(`rooms/${roomId}/players/${myId}`).update({ active: true });
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('game-screen').style.display = 'flex';
             document.getElementById('room-title').innerText = `غرفة: ${roomId}`;
@@ -178,12 +186,12 @@
                 const r = snap.val(); if(!r) return;
                 const pKeys = Object.keys(r.players || {});
 
-                // المضيف بيبدأ اللعبة أوتوماتيك لما العدد يكمل
-                if(isHost && r.status === 'waiting' && pKeys.length === r.max) {
+                // المضيف بيبدأ اللعبة لما العدد يكمل
+                if(isHost && r.status === 'waiting' && pKeys.length >= r.max) {
                     distribute(r, pKeys, true);
                 }
 
-                // لو الورق اللي في الإيد خلص
+                // الكشف لو الورق خلص
                 const noHands = pKeys.every(p => !r.hands || !r.hands[p] || r.hands[p].length === 0);
                 if(isHost && r.status === 'playing' && noHands) {
                     if(r.deck && r.deck.length > 0) distribute(r, pKeys, false);
@@ -202,24 +210,19 @@
                 let table = [];
                 while(table.length < 4) {
                     let c = deck.pop();
-                    // منع الولد والكومي في الأرض في البداية
                     if(c.n === 'J' || (c.n === '10' && c.id.includes('RED_DIAMONDS'))) deck.unshift(c);
                     else table.push(c);
                 }
                 updates.table = table;
             }
 
-            // توزيع 4 كروت لكل لاعب
-            const dealSize = Math.floor(deck.length / pKeys.length) >= 4 ? 4 : Math.floor(deck.length / pKeys.length);
-            
-            if(dealSize > 0) {
+            const dealSize = 4;
+            if(deck.length >= pKeys.length * dealSize) {
                 pKeys.forEach(p => updates[`hands/${p}`] = deck.splice(0, dealSize));
-            }
-
-            // لو فيه كروت فكة حطها في الأرض
-            if(deck.length > 0 && deck.length < pKeys.length) {
-                updates.table = [...(r.table || []), ...deck];
-                deck = [];
+            } else {
+                // لو الورق مش كفاية وزع المتبقي بالتساوي
+                const remainingEach = Math.floor(deck.length / pKeys.length);
+                if(remainingEach > 0) pKeys.forEach(p => updates[`hands/${p}`] = deck.splice(0, remainingEach));
             }
 
             updates.deck = deck;
@@ -241,25 +244,18 @@
                 if(table.length > 0) { taken = [...table, card]; table = []; }
                 else table.push(card);
             } else if(isKomi && table.length > 0) {
-                // الكومي بياخد الأرض لو المجموع 10 أو أقل (أو حسب رغبتك بياخد كله زي الولد)
                 taken = [...table, card]; table = [];
-                if(taken.length > 1) myBasras += 2; // بصرة الكومي بـ 20
+                if(taken.length > 1) myBasras += 2; 
             } else {
-                // البحث عن تشابه أو مجموع
                 let target = card.v;
                 let usedInTable = new Set();
-
-                // 1. التشابه المباشر
-                table.forEach((c, i) => {
-                    if(c.v === target) { taken.push(c); usedInTable.add(i); }
-                });
-
-                // 2. المجموع (تبسيط للمجاميع الثنائية)
-                for(let i=0; i<table.length; i++) {
+                table.forEach((c, i) => { if(c.v === target) { taken.push(c); usedInTable.add(i); } });
+                
+                // لو المجموع (تبسيط)
+                for(let i=0; i<table.length; i++){
                     if(usedInTable.has(i)) continue;
-                    for(let j=i+1; j<table.length; j++) {
-                        if(usedInTable.has(j)) continue;
-                        if(table[i].v + table[j].v === target) {
+                    for(let j=i+1; j<table.length; j++){
+                        if(!usedInTable.has(j) && table[i].v + table[j].v === target){
                             taken.push(table[i], table[j]);
                             usedInTable.add(i); usedInTable.add(j);
                         }
@@ -269,10 +265,8 @@
                 if(taken.length > 0) {
                     taken.push(card);
                     table = table.filter((_, index) => !usedInTable.has(index));
-                    if(table.length === 0) myBasras++; // بصرة عادية
-                } else {
-                    table.push(card);
-                }
+                    if(table.length === 0) myBasras++; 
+                } else { table.push(card); }
             }
 
             let nextTurn = pKeys[(pKeys.indexOf(myId) + 1) % pKeys.length];
@@ -287,24 +281,34 @@
         }
 
         function updateUI(r, pKeys) {
+            // تحديث حالة الغرفة في الشريط العلوي
+            const statusEl = document.getElementById('game-status');
+            if(r.status === 'waiting') {
+                statusEl.innerText = `بانتظار اللاعبين (${pKeys.length}/${r.max})`;
+            } else {
+                statusEl.innerText = (r.turn === myId) ? "دورك الآن! ⚡" : `دور ${r.turn}`;
+                statusEl.style.color = (r.turn === myId) ? "var(--neon-cyan)" : "var(--neon-gold)";
+            }
+
             // الأرض
             const tableDiv = document.getElementById('main-table'); tableDiv.innerHTML = "";
             (r.table || []).forEach((c, i) => {
-                const img = document.createElement('img'); img.src = c.id; img.className = 'card';
-                img.style.transform = `rotate(${i*15-15}deg) translate(${i*5}px)`;
+                const img = document.createElement('img'); 
+                img.src = `https://raw.githubusercontent.com/KareemOmar0/KAREEM_BASRA/main/${c.id}`; 
+                img.className = 'card';
+                img.style.transform = `rotate(${i*10-10}deg) translate(${i*2}px)`;
                 tableDiv.appendChild(img);
             });
 
-            // اللاعبين الآخرين
+            // الآخرين
             const otherDiv = document.getElementById('other-players'); otherDiv.innerHTML = "";
             const slots = ['slot-top', 'slot-left', 'slot-right'];
             let sIdx = 0;
             pKeys.forEach(p => {
                 if(p !== myId) {
                     const hSize = (r.hands && r.hands[p]) ? r.hands[p].length : 0;
-                    const isTurn = r.turn === p;
                     otherDiv.innerHTML += `
-                        <div class="player-slot ${slots[sIdx]} ${isTurn?'active-turn':''}">
+                        <div class="player-slot ${slots[sIdx]} ${r.turn === p ? 'active-turn':''}">
                             <div class="player-tag">${p}</div>
                             <div style="display:flex">${Array(hSize).fill(0).map(()=>`<img src="${BACK_IMG}" style="width:30px; margin-left:-15px; border-radius:4px">`).join('')}</div>
                         </div>`;
@@ -316,19 +320,20 @@
             const myHandDiv = document.getElementById('my-hand'); myHandDiv.innerHTML = "";
             if(r.hands && r.hands[myId]) {
                 r.hands[myId].forEach((c, i) => {
-                    const img = document.createElement('img'); img.src = c.id; img.className = 'card';
-                    img.style.position = 'static';
+                    const img = document.createElement('img');
+                    img.src = `https://raw.githubusercontent.com/KareemOmar0/KAREEM_BASRA/main/${c.id}`;
+                    img.className = 'card'; img.style.position = 'static';
                     img.onclick = () => playCard(c, i, r, pKeys);
                     myHandDiv.appendChild(img);
                 });
             }
 
-            document.getElementById('my-turn-msg').style.display = (r.turn === myId) ? 'block' : 'none';
-            const capturedCount = (r.players[myId].captured || []).length;
-            document.getElementById('pile-count').innerText = `${capturedCount} ورقة`;
-            if(capturedCount > 0) {
-                const last = r.players[myId].captured[capturedCount-1];
-                document.getElementById('pile-view').innerHTML = `<img src="${last.id}" style="width:100%; height:100%; border-radius:5px">`;
+            document.getElementById('my-turn-msg').style.display = (r.turn === myId && r.status === 'playing') ? 'block' : 'none';
+            const caps = (r.players[myId] && r.players[myId].captured) ? r.players[myId].captured : [];
+            document.getElementById('pile-count').innerText = `${caps.length} ورقة`;
+            if(caps.length > 0) {
+                const last = caps[caps.length-1];
+                document.getElementById('pile-view').innerHTML = `<img src="https://raw.githubusercontent.com/KareemOmar0/KAREEM_BASRA/main/${last.id}" style="width:100%; height:100%; border-radius:5px">`;
             }
             document.getElementById('deck-count').innerText = `المتبقي: ${r.deck?r.deck.length:0}`;
         }
@@ -336,24 +341,18 @@
         function calculateFinal(r, pKeys) {
             let finalScores = [];
             let maxCards = -1, winnerName = "";
-
             pKeys.forEach(p => {
                 let caps = r.players[p].captured || [];
                 let score = (r.players[p].basras || 0) * 10;
-                
                 caps.forEach(c => {
                     if(c.n === 'A' || c.n === 'J') score += 1;
                     if(c.id.includes('2_BLACK_SPADES')) score += 2;
                     if(c.id.includes('10_RED_DIAMONDS')) score += 3;
                 });
-
                 if(caps.length > maxCards) { maxCards = caps.length; winnerName = p; }
                 finalScores.push({ name: p, count: caps.length, score: score });
             });
-
-            // 3 نقط للأكثر ورقاً
             finalScores.forEach(s => { if(s.name === winnerName) s.score += 3; });
-
             const resTable = document.getElementById('res-table');
             resTable.innerHTML = `<tr><th>اللاعب</th><th>الورق</th><th>النقط</th></tr>`;
             finalScores.sort((a,b) => b.score - a.score).forEach(s => {
@@ -363,7 +362,7 @@
         }
 
         function restartGame() {
-            if(!isHost) return alert("المضيف بس اللي يقدر يبدأ لعبة جديدة!");
+            if(!isHost) return alert("الهوست بس اللي يبدأ!");
             db.ref(`rooms/${roomId}`).update({
                 status: 'waiting', deck: generateDeck(), table: [], hands: {}, lastTaker: ""
             });
@@ -371,7 +370,7 @@
         }
 
         function exitGame() {
-            db.ref(`rooms/${roomId}`).remove();
+            localStorage.removeItem('basra_session');
             location.reload();
         }
     </script>
