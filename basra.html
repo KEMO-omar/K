@@ -3,83 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>بصرة كيمو - KAREEM CARDS</title>
+    <title>KAREEM BASRA - PRO EDITION</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
-        :root { --gold: #f1c40f; --dark: #0a0a0a; }
-        body { background: radial-gradient(circle, #2c3e50, #000000); color: white; font-family: 'Cairo', sans-serif; margin: 0; overflow: hidden; height: 100vh; }
         
-        /* Lobby & General UI */
-        #lobby { height: 100%; display: flex; flex-direction: column; align-items: center; padding: 20px; overflow-y: auto; }
-        .logo { font-size: 3rem; font-weight: 900; color: var(--gold); text-shadow: 0 0 15px rgba(241,196,15,0.4); margin: 20px 0; }
-        .rooms-container { width: 100%; max-width: 800px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
-        .room-card { background: rgba(255,255,255,0.05); border: 1px solid #444; padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(5px); }
-        
-        /* Modals */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
-        .modal-content { background: #1a1a1a; border: 2px solid var(--gold); padding: 30px; border-radius: 20px; width: 320px; text-align: center; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; font-family: 'Cairo'; }
-        .btn { background: var(--gold); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 900; cursor: pointer; transition: 0.3s; width: 100%; }
-        .btn:hover { transform: scale(1.05); box-shadow: 0 0 15px var(--gold); }
+        :root {
+            --neon-gold: #f1c40f;
+            --neon-blue: #00d4ff;
+            --bg-dark: #050505;
+            --card-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
 
-        /* Game Screen */
-        #game-screen { display: none; flex-direction: column; height: 100%; }
-        .game-header { background: rgba(0,0,0,0.5); padding: 10px 20px; display: flex; justify-content: space-between; border-bottom: 2px solid var(--gold); }
-        
-        .opponents-row { display: flex; justify-content: center; gap: 20px; height: 20vh; padding: 10px; }
-        .p-hub { display: flex; flex-direction: column; align-items: center; padding: 10px; border-radius: 15px; border: 2px solid transparent; }
-        .p-hub.active { border-color: var(--gold); background: rgba(241,196,15,0.1); }
-        .p-name { background: var(--gold); color: #000; padding: 2px 12px; border-radius: 15px; font-weight: bold; font-size: 0.8rem; }
+        body {
+            background: radial-gradient(circle at center, #1a1a2e 0%, #050505 100%);
+            color: white;
+            font-family: 'Cairo', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            user-select: none;
+        }
 
-        .table-area { flex-grow: 1; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; padding: 20px; }
-        .card-img { width: 80px; height: 120px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); object-fit: cover; }
-        
-        .my-zone { height: 25vh; background: rgba(0,0,0,0.8); border-top: 3px solid var(--gold); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        .hand { display: flex; gap: 10px; }
-        .my-card { cursor: pointer; transition: 0.3s; }
-        .my-card:hover { transform: translateY(-25px) scale(1.1); }
+        /* Lobby UI */
+        #lobby {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: url('https://www.transparenttextures.com/patterns/stardust.png');
+        }
 
-        .pile-info { position: absolute; right: 20px; bottom: 20px; text-align: center; }
-        .pile-stack { width: 50px; height: 75px; border: 1px solid var(--gold); border-radius: 5px; background: #222; overflow: hidden; }
-        .pile-stack img { width: 100%; height: 100%; }
+        .main-card {
+            background: rgba(20, 20, 20, 0.9);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid var(--neon-blue);
+            box-shadow: 0 0 30px var(--neon-blue);
+            text-align: center;
+            width: 320px;
+        }
+
+        .logo-text {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--neon-gold);
+            text-shadow: 0 0 20px var(--neon-gold);
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: #000;
+            border: 1px solid #333;
+            color: #fff;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        input:focus { border-color: var(--neon-blue); outline: none; }
+
+        .btn {
+            background: var(--neon-blue);
+            color: #000;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 900;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+        .btn:hover { transform: scale(1.05); box-shadow: 0 0 20px var(--neon-blue); }
+
+        /* Game UI */
+        #game-screen { display: none; flex-direction: column; height: 100%; position: relative; }
+        
+        .header {
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.8);
+            border-bottom: 1px solid var(--neon-blue);
+        }
+
+        .table-area {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+
+        .card-img {
+            width: 90px;
+            height: 130px;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: absolute;
+        }
+
+        /* Player Hands */
+        .hand {
+            height: 160px;
+            background: rgba(0,0,0,0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            border-top: 2px solid var(--neon-gold);
+            backdrop-filter: blur(10px);
+        }
+
+        .my-card {
+            position: relative;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .my-card:hover { transform: translateY(-30px) rotate(5deg); z-index: 100; }
+
+        .turn-indicator {
+            position: absolute;
+            top: 50%;
+            left: 20px;
+            transform: translateY(-50%);
+            padding: 10px 20px;
+            border-radius: 30px;
+            background: var(--neon-gold);
+            color: #000;
+            font-weight: 900;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; box-shadow: 0 0 20px var(--neon-gold); }
+            100% { opacity: 0.6; }
+        }
+
+        #opponents {
+            position: absolute;
+            top: 80px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+        }
+
+        .score-badge {
+            background: rgba(255,255,255,0.1);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
 
     <div id="lobby">
-        <div class="logo">KAREEM CARDS</div>
-        <button class="btn" style="max-width:280px; margin-bottom:20px;" onclick="showModal('createModal')">إنشاء طاولة</button>
-        <div class="rooms-container" id="rooms-list"></div>
+        <div class="main-card">
+            <div class="logo-text">KAREEM BASRA</div>
+            <input type="text" id="pName" placeholder="اسمك">
+            <input type="text" id="rName" placeholder="اسم الغرفة">
+            <input type="password" id="rPass" placeholder="كلمة السر">
+            <button class="btn" onclick="joinRoom()">دخول / إنشاء</button>
+        </div>
     </div>
 
-    <div id="createModal" class="modal"><div class="modal-content">
-        <h3 style="color:var(--gold)">غرفة جديدة</h3>
-        <input type="text" id="cPlayerName" placeholder="اسمك">
-        <input type="text" id="cRoomName" placeholder="اسم الطاولة">
-        <select id="cMax"><option value="2">2 لاعبين</option><option value="3">3 لاعبين</option><option value="4">4 لاعبين</option></select>
-        <button class="btn" onclick="initRoom()">ابدأ</button>
-    </div></div>
-
     <div id="game-screen">
-        <div class="game-header">
-            <div id="r-name">طاولة كيمو</div>
-            <div id="status" style="color:var(--gold)">بانتظار المنافسين...</div>
-            <div id="d-count">الباقي: 52</div>
+        <div class="header">
+            <div><span id="room-display" style="color:var(--neon-blue)">-</span></div>
+            <div class="score-badge">أوراقك: <span id="my-pile">0</span> | بصرة: <span id="my-basras">0</span></div>
+            <div id="deck-count">الكوتشينة: 52</div>
         </div>
-        <div class="opponents-row" id="opponents"></div>
-        <div class="table-area" id="table"></div>
-        <div class="my-zone">
-            <div class="hand" id="my-hand"></div>
-            <div class="pile-info">
-                <div class="pile-stack" id="my-pile-box"></div>
-                <small id="my-score-label">0 ورقة</small>
+
+        <div id="opponents"></div>
+        <div id="turn-msg" class="turn-indicator" style="display:none">دورك الآن</div>
+
+        <div class="table-area" id="table">
             </div>
-        </div>
+
+        <div class="hand" id="my-hand">
+            </div>
     </div>
 
     <script>
+        // --- إعدادات Firebase بتاعك ---
         const firebaseConfig = {
             apiKey: "AIzaSyCd84g8O2xZzIiNQCOQ9W5H_bLmcMJAu_k",
             authDomain: "kout-d2e1d.firebaseapp.com",
@@ -89,83 +209,80 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let myId = "", roomId = "", dealing = false;
-        
-        // --- تعديل المسارات عشان تطابق ملف العرض بتاعك ---
-        const BACK = 'BACK_CARD.PNG'; 
+        let myId = "", roomId = "", myPass = "";
+        const BACK = 'BACK_CARD.PNG';
 
-        function showModal(id) { document.getElementById(id).style.display = 'flex'; }
-        function hideModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+        function joinRoom() {
+            myId = document.getElementById('pName').value.trim();
+            const rName = document.getElementById('rName').value.trim();
+            const rPass = document.getElementById('rPass').value.trim();
 
-        // توليد الكروت بنفس أسماء ملفاتك
+            if(!myId || !rName || !rPass) return alert("كمل البيانات يا كيمو!");
+
+            roomId = rName;
+            myPass = rPass;
+
+            const rRef = db.ref(`rooms/${roomId}`);
+            rRef.once('value', snap => {
+                const r = snap.val();
+                if(!r) {
+                    // إنشاء غرفة جديدة
+                    rRef.set({
+                        password: rPass,
+                        status: 'waiting',
+                        deck: generateDeck(),
+                        table: [],
+                        turn: myId,
+                        lastTaker: ""
+                    }).then(() => enterRoom());
+                } else {
+                    if(r.password !== rPass) return alert("كلمة السر غلط!");
+                    enterRoom();
+                }
+            });
+        }
+
+        function enterRoom() {
+            db.ref(`rooms/${roomId}/players/${myId}`).set({
+                basras: 0,
+                capturedCount: 0,
+                connected: true
+            });
+            document.getElementById('lobby').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+            document.getElementById('room-display').innerText = `غرفة: ${roomId}`;
+            startListener();
+        }
+
         function generateDeck() {
             const suits = ['BLACK_CLUBS', 'BLACK_SPADES', 'RED_DIAMONDS', 'RED_HEARTS'];
             const vals = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
             let d = [];
             suits.forEach(s => vals.forEach(v => {
-                let numericValue = isNaN(v) ? (v === 'A' ? 1 : (v === 'J' ? 11 : (v === 'Q' ? 12 : 13))) : parseInt(v);
-                d.push({ 
-                    id: `${v}_${s}.PNG`, // ده الشكل اللي أنت استخدمته في ملف العرض
-                    v: numericValue, 
-                    n: v 
-                });
+                let weight = isNaN(v) ? (v === 'A' ? 1 : (v === 'J' ? 11 : (v === 'Q' ? 12 : 13))) : parseInt(v);
+                d.push({ id: `${v}_${s}.PNG`, v: weight, n: v });
             }));
             return d.sort(() => Math.random() - 0.5);
         }
 
-        function initRoom() {
-            myId = document.getElementById('cPlayerName').value.trim();
-            const rName = document.getElementById('cRoomName').value.trim();
-            if(!myId || !rName) return alert("اكتب اسمك واسم الغرفة");
-            const ref = db.ref('rooms').push();
-            roomId = ref.key;
-            ref.set({
-                name: rName, max: parseInt(document.getElementById('cMax').value),
-                status: 'waiting', table: [], deck: generateDeck(), turn: myId, lastCap: ""
-            }).then(() => joinOk(myId));
-        }
-
-        // تحديث قائمة الغرف
-        db.ref('rooms').on('value', snap => {
-            const list = document.getElementById('rooms-list');
-            list.innerHTML = "";
-            snap.forEach(child => {
-                const r = child.val();
-                if(r.status === 'finished') return;
-                const pCount = Object.keys(r.players || {}).length;
-                list.innerHTML += `<div class="room-card">
-                    <div><b>${r.name}</b><br><small>${pCount}/${r.max} لاعبين</small></div>
-                    <button class="btn" style="width:70px" onclick="preJoin('${child.key}')">دخول</button>
-                </div>`;
-            });
-        });
-
-        function preJoin(id) {
-            roomId = id;
-            myId = prompt("اكتب اسمك للدخول:");
-            if(myId) joinOk(myId);
-        }
-
-        function joinOk(name) {
-            db.ref(`rooms/${roomId}/players/${name}`).set({ basras: 0, captured: [], score: 0 });
-            document.getElementById('lobby').style.display = 'none';
-            document.getElementById('game-screen').style.display = 'flex';
-            mainLoop();
-        }
-
-        function mainLoop() {
+        function startListener() {
             db.ref(`rooms/${roomId}`).on('value', snap => {
-                const r = snap.val(); if(!r) return;
+                const r = snap.val();
+                if(!r) return;
+
                 const pKeys = Object.keys(r.players || {});
                 
-                if(r.status === 'waiting' && pKeys.length >= r.max && !dealing) {
-                    dealing = true; distribute(r, pKeys, true);
+                // بدء اللعبة وتوزيع الكروت
+                if(r.status === 'waiting' && pKeys.length >= 2) {
+                    distribute(r, pKeys, true);
                 }
+
+                // لو الإيد خلصت نوزع تاني
                 const noHands = pKeys.every(p => !r.hands || !r.hands[p] || r.hands[p].length === 0);
-                if(r.status === 'playing' && noHands && !dealing) {
-                    if(r.deck && r.deck.length > 0) { dealing = true; distribute(r, pKeys, false); }
-                    else { endGame(r, pKeys); }
+                if(r.status === 'playing' && noHands && r.deck && r.deck.length > 0) {
+                    distribute(r, pKeys, false);
                 }
+
                 updateUI(r, pKeys);
             });
         }
@@ -174,86 +291,105 @@
             let deck = [...r.deck];
             let updates = {};
             if(isFirst) {
-                let table = [];
-                while(table.length < 4) {
-                    let c = deck.pop();
-                    if(c.n === 'J' || (c.n === '7' && c.id.includes('RED_DIAMONDS'))) deck.unshift(c);
-                    else table.push(c);
-                }
+                let table = deck.splice(0, 4);
                 updates.status = 'playing';
                 updates.table = table;
             }
             pKeys.forEach(p => updates[`hands/${p}`] = deck.splice(0, 4));
             updates.deck = deck;
-            db.ref(`rooms/${roomId}`).update(updates).then(() => dealing = false);
+            db.ref(`rooms/${roomId}`).update(updates);
         }
 
-        function play(card, idx, r, pKeys) {
+        function playCard(card, idx, r, pKeys) {
+            if(r.turn !== myId) return;
+
             let table = r.table || [];
-            let myCap = r.players[myId].captured || [];
-            let myBasra = r.players[myId].basras || 0;
-            let taken = [];
+            let myCaptured = r.players[myId].capturedCount || 0;
+            let myBasras = r.players[myId].basras || 0;
+            let capturedThisTurn = [];
 
             const isJ = card.n === 'J';
             const isKomi = card.n === '7' && card.id.includes('RED_DIAMONDS');
 
-            if(isJ || (isKomi && table.reduce((s,c)=>s+c.v,0) <= 10)) {
-                if(table.length > 0) { taken = [...table]; table = []; }
+            if(isJ || isKomi) {
+                // الولد أو الكومي بيقش الأرض كلها
+                if(table.length > 0) {
+                    capturedThisTurn = [...table, card];
+                    table = [];
+                } else {
+                    table.push(card);
+                }
             } else {
-                let used = new Set();
-                table.forEach((c, i) => { if(c.v === card.v) { taken.push(c); used.add(i); } });
-                table = table.filter((_, i) => !used.has(i));
+                // منطق اللم العادي (تساوي القيمة)
+                let matches = table.filter(c => c.v === card.v);
+                if(matches.length > 0) {
+                    capturedThisTurn = [...matches, card];
+                    table = table.filter(c => c.v !== card.v);
+                    
+                    // بصمة البصرة (لو الأرض فضيت بكرت غير الولد والكومي)
+                    if(table.length === 0) myBasras++;
+                } else {
+                    table.push(card);
+                }
             }
 
-            if(taken.length > 0) {
-                if(table.length === 0 && !isJ) myBasra++;
-                myCap = [...myCap, ...taken, card];
-            } else { table.push(card); }
+            let newHand = [...r.hands[myId]];
+            newHand.splice(idx, 1);
 
-            let hand = [...r.hands[myId]]; hand.splice(idx, 1);
+            let nextTurn = pKeys[(pKeys.indexOf(myId) + 1) % pKeys.length];
+
             db.ref(`rooms/${roomId}`).update({
-                table: table, [`hands/${myId}`]: hand,
-                turn: pKeys[(pKeys.indexOf(myId)+1)%pKeys.length],
-                [`players/${myId}/captured`]: myCap, [`players/${myId}/basras`]: myBasra,
-                lastCap: taken.length > 0 ? myId : r.lastCap
+                table: table,
+                [`hands/${myId}`]: newHand,
+                turn: nextTurn,
+                [`players/${myId}/capturedCount`]: myCaptured + capturedThisTurn.length,
+                [`players/${myId}/basras`]: myBasras,
+                lastTaker: capturedThisTurn.length > 0 ? myId : r.lastTaker
             });
         }
 
         function updateUI(r, pKeys) {
-            document.getElementById('status').innerText = r.turn === myId ? "دورك!" : `دور: ${r.turn}`;
-            document.getElementById('d-count').innerText = `الباقي: ${r.deck?r.deck.length:0}`;
-            
-            const tArea = document.getElementById('table'); tArea.innerHTML = "";
-            (r.table || []).forEach(c => tArea.innerHTML += `<img src="${c.id}" class="card-img">`);
+            const tableDiv = document.getElementById('table');
+            tableDiv.innerHTML = "";
+            (r.table || []).forEach((c, i) => {
+                const img = document.createElement('img');
+                img.src = c.id;
+                img.className = 'card-img';
+                // توزيع عشوائي للكروت في الأرض بشكل جمالي
+                img.style.transform = `rotate(${i * 15 - 30}deg) translate(${i * 5}px)`;
+                tableDiv.appendChild(img);
+            });
 
-            const oppArea = document.getElementById('opponents'); oppArea.innerHTML = "";
+            const handDiv = document.getElementById('my-hand');
+            handDiv.innerHTML = "";
+            if(r.hands && r.hands[myId]) {
+                r.hands[myId].forEach((c, i) => {
+                    const img = document.createElement('img');
+                    img.src = c.id;
+                    img.className = 'card-img my-card';
+                    img.style.position = 'static';
+                    img.onclick = () => playCard(c, i, r, pKeys);
+                    handDiv.appendChild(img);
+                });
+            }
+
+            document.getElementById('turn-msg').style.display = (r.turn === myId) ? 'block' : 'none';
+            document.getElementById('my-pile').innerText = r.players[myId].capturedCount || 0;
+            document.getElementById('my-basras').innerText = r.players[myId].basras || 0;
+            document.getElementById('deck-count').innerText = `الكوتشينة: ${r.deck ? r.deck.length : 0}`;
+
+            const oppDiv = document.getElementById('opponents');
+            oppDiv.innerHTML = "";
             pKeys.forEach(p => {
                 if(p !== myId) {
                     const hS = (r.hands && r.hands[p]) ? r.hands[p].length : 0;
-                    oppArea.innerHTML += `<div class="p-hub ${r.turn===p?'active':''}">
-                        <div class="p-name">${p}</div>
-                        <div style="display:flex; margin-top:5px;">${Array(hS).fill(0).map(()=>`<img src="${BACK}" style="width:25px; margin-left:-10px; border:1px solid #000; border-radius:3px;">`).join('')}</div>
-                    </div>`;
+                    oppDiv.innerHTML += `
+                        <div style="text-align:center">
+                            <div style="color:var(--neon-blue)">${p}</div>
+                            <div style="display:flex">${Array(hS).fill(0).map(()=>`<img src="${BACK}" style="width:30px; margin-left:-15px; border-radius:5px; border:1px solid #000">`).join('')}</div>
+                        </div>`;
                 }
             });
-
-            const mH = document.getElementById('my-hand'); mH.innerHTML = "";
-            if(r.hands && r.hands[myId]) {
-                r.hands[myId].forEach((c, i) => {
-                    const img = document.createElement('img'); img.src = c.id;
-                    img.className = "my-card card-img"; img.onclick = () => { if(r.turn===myId) play(c,i,r,pKeys); };
-                    mH.appendChild(img);
-                });
-            }
-            const myC = r.players[myId].captured || [];
-            document.getElementById('my-score-label').innerText = `${myC.length} ورقة`;
-            if(myC.length > 0) document.getElementById('my-pile-box').innerHTML = `<img src="${myC[myC.length-1].id}">`;
-        }
-
-        function endGame(r, pKeys) {
-            // منطق حساب النقط النهائي..
-            alert("انتهت اللعبة! سيتم حساب النتائج.");
-            location.reload();
         }
     </script>
 </body>
