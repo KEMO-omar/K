@@ -3,185 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KAREEM - FOQ BA3DIH FIX</title>
+    <title>KAREEM - FOQ BA3DIH ULTRA</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
-        :root { --neon: #00f2ff; --gold: #f1c40f; }
-        body { background: #050505; color: white; font-family: 'Cairo', sans-serif; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        :root { --neon: #00f2ff; --gold: #f1c40f; --bg: #050505; }
         
-        #lobby { position: fixed; inset: 0; background: #000; z-index: 100; display: flex; align-items: center; justify-content: center; }
-        .box { background: #111; padding: 30px; border-radius: 20px; border: 1px solid var(--neon); text-align: center; width: 300px; }
-        input { width: 90%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: #fff; border-radius: 8px; text-align: center; }
+        body { background: var(--bg); color: white; font-family: 'Cairo', sans-serif; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+        /* اللوبي */
+        #lobby { position: fixed; inset: 0; background: radial-gradient(circle, #1a1a2e, #000); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(15px); padding: 30px; border-radius: 25px; border: 2px solid var(--neon); width: 320px; text-align: center; }
+        input { width: 90%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #333; color: #fff; border-radius: 10px; text-align: center; font-family: 'Cairo'; }
+        .btn-neon { background: linear-gradient(45deg, var(--neon), #bc13fe); color: #fff; border: none; padding: 15px; border-radius: 10px; font-weight: 900; cursor: pointer; width: 100%; margin-top: 10px; }
+
+        /* الساحة */
+        .game-header { padding: 15px; background: rgba(0,0,0,0.8); display: flex; justify-content: space-between; border-bottom: 2px solid var(--neon); z-index: 10; }
+        #board { flex-grow: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 20px; }
+
+        /* الكروت */
+        .card { width: 90px; height: 130px; border-radius: 10px; position: absolute; transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1); background-size: cover; border: 1px solid rgba(255,255,255,0.2); }
+        .back-card { background-image: url('https://raw.githubusercontent.com/KareemOmar0/KAREEM_BASRA/main/BACK_CARD.PNG'); z-index: 5; }
         
-        .btn { background: var(--neon); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 900; cursor: pointer; width: 100%; }
+        #ground-pile { width: 100px; height: 140px; border: 2px dashed #333; border-radius: 12px; position: relative; }
         
-        .game-header { padding: 15px; background: #111; display: flex; justify-content: space-between; border-bottom: 2px solid var(--neon); }
-        .player-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        .player-info { padding: 10px 20px; border-radius: 50px; background: #111; border: 2px solid #222; transition: 0.3s; }
+        .turn-now { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.05); }
+
+        /* الأنيميشن لما الكارت ينزل الأرض */
+        .throwing { transform: translateY(-150px) rotateY(180deg) !important; }
         
-        .active-turn { border: 2px solid var(--gold) !important; box-shadow: 0 0 15px var(--gold); }
-        .card-pile { width: 90px; height: 130px; border-radius: 10px; border: 2px solid #333; transition: 0.3s; position: relative; }
-        .back-img { background: url('https://raw.githubusercontent.com/KareemOmar0/KAREEM_BASRA/main/BACK_CARD.PNG') center/cover; }
-        
-        #ground { width: 100px; height: 140px; border: 2px dashed #555; border-radius: 10px; position: relative; margin: 20px 0; }
-        .table-card { position: absolute; width: 90px; height: 130px; border-radius: 8px; top: 5px; left: 5px; }
-        
-        .status-bar { padding: 10px; text-align: center; background: #111; font-weight: bold; }
+        /* شاشة الفوز */
+        #win-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 3000; flex-direction: column; align-items: center; justify-content: center; }
+        .win-box { text-align: center; animation: zoomIn 0.5s; }
+        @keyframes zoomIn { from { transform: scale(0); } to { transform: scale(1); } }
     </style>
 </head>
 <body>
 
-<div id="lobby">
-    <div class="box">
-        <h2 style="color:var(--neon)">فوق بعضيه</h2>
-        <input id="pName" placeholder="اسمك">
-        <input id="rName" placeholder="اسم الغرفة">
-        <input id="rPass" type="password" placeholder="كلمة السر">
-        <button class="btn" onclick="join()">ابدأ</button>
+    <div id="lobby">
+        <div class="glass">
+            <h1 style="color: var(--neon); margin: 0;">فوق بعضيه</h1>
+            <p style="font-size: 0.8rem; color: #888;">نسخة KAREEM OMAR الرسمية</p>
+            <input type="text" id="pName" placeholder="اسمك">
+            <input type="text" id="rName" placeholder="اسم الغرفة">
+            <input type="password" id="rPass" placeholder="كلمة السر">
+            <button class="btn-neon" onclick="connect()">دخول</button>
+        </div>
     </div>
-</div>
 
-<div class="game-header">
-    <div id="room-display">الغرفة: --</div>
-    <div id="ground-info">الأرض: 0</div>
-</div>
+    <div class="game-header">
+        <div id="room-id" style="color: var(--gold)"></div>
+        <div id="status-text">انتظار الخصم...</div>
+        <div id="count-ground" style="font-weight: 900;">الأرض: 0</div>
+    </div>
 
-<div class="player-area" id="opp-section">
-    <div id="opp-label">المنافس: --</div>
-    <div class="card-pile back-img" id="opp-card-visual"></div>
-</div>
+    <div id="board">
+        <div id="opp-ui" class="player-info">المنافس: --</div>
+        <div id="opp-deck" class="card back-card" style="top: 80px;"></div>
 
-<div id="ground"></div>
+        <div id="ground-pile"></div>
 
-<div class="player-area" id="my-section">
-    <div class="card-pile back-img" id="my-card-visual" onclick="play()"></div>
-    <div id="my-label">أنا: 0</div>
-</div>
+        <div id="my-deck" class="card back-card" style="bottom: 80px; cursor: pointer;" onclick="throwCard()"></div>
+        <div id="my-ui" class="player-info">أنا: 0</div>
+    </div>
 
-<div class="status-bar" id="msg">انتظار...</div>
+    <div id="win-overlay">
+        <div class="win-box">
+            <h1 id="winner-name" style="color: var(--gold); font-size: 3rem; text-shadow: 0 0 20px var(--gold);"></h1>
+            <p style="font-size: 1.5rem;">مبروك يا بطل! 🎉</p>
+            <button class="btn-neon" onclick="location.reload()">لعبة جديدة</button>
+            <button class="btn-neon" style="background: #333; margin-top: 10px;" onclick="window.close()">خروج</button>
+        </div>
+    </div>
 
 <script>
-const firebaseConfig = {
-    apiKey: "AIzaSyCd84g8O2xZzIiNQCOQ9W5H_bLmcMJAu_k",
-    authDomain: "kout-d2e1d.firebaseapp.com",
-    projectId: "kout-d2e1d",
-    databaseURL: "https://kout-d2e1d-default-rtdb.firebaseio.com"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+    const firebaseConfig = {
+        apiKey: "AIzaSyCd84g8O2xZzIiNQCOQ9W5H_bLmcMJAu_k",
+        authDomain: "kout-d2e1d.firebaseapp.com",
+        projectId: "kout-d2e1d",
+        databaseURL: "https://kout-d2e1d-default-rtdb.firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-let myId, roomId, isHost = false;
-const IMG_PATH = 'https://raw.githubusercontent.com/KareemOmar0/KAREEM_BASRA/main/';
+    let myId, roomId, isHost = false;
+    const IMG_BASE = 'https://raw.githubusercontent.com/KareemOmar0/KAREEM_BASRA/main/';
 
-function join() {
-    myId = document.getElementById('pName').value.trim();
-    roomId = document.getElementById('rName').value.trim();
-    let pass = document.getElementById('rPass').value.trim();
-    if(!myId || !roomId || !pass) return;
+    function connect() {
+        myId = document.getElementById('pName').value.trim();
+        roomId = document.getElementById('rName').value.trim();
+        const pass = document.getElementById('rPass').value.trim();
+        if(!myId || !roomId || !pass) return alert("كمل البيانات");
 
-    let ref = db.ref(`FoqBa3dih_Kareem/${roomId}`);
-    ref.once('value', s => {
-        let d = s.val();
-        if(!d) {
-            isHost = true;
-            ref.set({ pass, turn: "", status: 'wait', table: [] });
-        } else if(d.pass !== pass) return alert("غلط");
-        
-        db.ref(`FoqBa3dih_Kareem/${roomId}/players/${myId}`).set({ name: myId, deck: [0] }); // دمي لتعريف اللاعب
-        document.getElementById('lobby').style.display = 'none';
-        init();
-    });
-}
-
-function init() {
-    db.ref(`FoqBa3dih_Kareem/${roomId}`).on('value', s => {
-        let r = s.val(); if(!r) return;
-        let players = Object.keys(r.players || {});
-        
-        // Host: Start game explicitly
-        if(isHost && r.status === 'wait' && players.length === 2) {
-            let deck = generateDeck();
-            db.ref(`FoqBa3dih_Kareem/${roomId}`).update({
-                status: 'play',
-                turn: players[0],
-                [`players/${players[0]}/deck`]: deck.slice(0, 26),
-                [`players/${players[1]}/deck`]: deck.slice(26, 52)
-            });
-        }
-        update(r, players);
-    });
-}
-
-function generateDeck() {
-    let v = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-    let s = ['BLACK_CLUBS','BLACK_SPADES','RED_DIAMONDS','RED_HEARTS'];
-    let d = [];
-    s.forEach(x => v.forEach(y => d.push({id: `${y}_${x}.PNG`, v: y})));
-    return d.sort(() => Math.random() - 0.5);
-}
-
-function update(r, p) {
-    let oppId = p.find(x => x !== myId);
-    let myData = r.players[myId] || {deck:[]};
-    let oppData = oppId ? r.players[oppId] : {deck:[]};
-    let table = r.table || [];
-
-    // UI Updates
-    document.getElementById('my-label').innerText = `أنا: ${(myData.deck||[]).length}`;
-    document.getElementById('opp-label').innerText = `${oppId || 'انتظار'}: ${(oppData.deck||[]).length}`;
-    document.getElementById('ground-info').innerText = `الأرض: ${table.length}`;
-    document.getElementById('room-display').innerText = `غرفة: ${roomId}`;
-
-    // Turn Glow
-    document.getElementById('my-card-visual').className = `card-pile back-img ${r.turn === myId ? 'active-turn' : ''}`;
-    document.getElementById('opp-card-visual').className = `card-pile back-img ${r.turn === oppId ? 'active-turn' : ''}`;
-    document.getElementById('msg').innerText = r.turn === myId ? "دورك الآن!" : "انتظر الخصم...";
-
-    // Ground Cards
-    let g = document.getElementById('ground');
-    g.innerHTML = "";
-    if(table.length > 0) {
-        let last = table[table.length-1];
-        let img = document.createElement('img');
-        img.src = IMG_PATH + last.id;
-        img.className = "table-card";
-        g.appendChild(img);
+        const ref = db.ref(`KAREEM_FOQ/${roomId}`);
+        ref.once('value', s => {
+            const d = s.val();
+            if(!d) {
+                isHost = true;
+                ref.set({ pass, turn: "", status: 'wait', table: [] });
+            } else if(d.pass !== pass) return alert("باسورد غلط");
+            
+            db.ref(`KAREEM_FOQ/${roomId}/players/${myId}`).set({ name: myId, deck: [] });
+            document.getElementById('lobby').style.display = 'none';
+            document.getElementById('room-id').innerText = `غرفة: ${roomId}`;
+            listen();
+        });
     }
-    
-    // Win Check
-    if((myData.deck||[]).length === 52) alert("كسبت!");
-}
 
-function play() {
-    db.ref(`FoqBa3dih_Kareem/${roomId}`).once('value', s => {
-        let r = s.val();
-        if(r.turn !== myId || r.status !== 'play') return;
+    function listen() {
+        db.ref(`KAREEM_FOQ/${roomId}`).on('value', s => {
+            const r = s.val(); if(!r) return;
+            const players = Object.keys(r.players || {});
 
-        let myDeck = r.players[myId].deck || [];
-        if(myDeck.length === 0) return;
+            if(isHost && r.status === 'wait' && players.length === 2) {
+                const deck = createDeck();
+                db.ref(`KAREEM_FOQ/${roomId}`).update({
+                    status: 'play', turn: players[0],
+                    [`players/${players[0]}/deck`]: deck.slice(0, 26),
+                    [`players/${players[1]}/deck`]: deck.slice(26, 52)
+                });
+            }
+            render(r, players);
+        });
+    }
 
-        let card = myDeck.shift();
-        let table = r.table || [];
-        let last = table.length > 0 ? table[table.length-1] : null;
-        let oppId = Object.keys(r.players).find(x => x !== myId);
-        
-        let up = {};
-        if(last && last.v === card.v) {
-            table.push(card);
-            myDeck.push(...table);
-            table = [];
-            up['turn'] = myId; // بيلعب تاني عشان لقط
-        } else {
-            table.push(card);
-            up['turn'] = oppId;
+    function createDeck() {
+        const suits = ['BLACK_CLUBS', 'BLACK_SPADES', 'RED_DIAMONDS', 'RED_HEARTS'];
+        const vals = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        let d = [];
+        suits.forEach(s => vals.forEach(v => d.push({ id: `${v}_${s}.PNG`, v: v })));
+        return d.sort(() => Math.random() - 0.5);
+    }
+
+    function render(r, p) {
+        const oppId = p.find(x => x !== myId);
+        const myData = r.players[myId] || { deck: [] };
+        const oppData = oppId ? r.players[oppId] : { name: "انتظار...", deck: [] };
+        const table = r.table || [];
+
+        // تحديث النصوص
+        document.getElementById('my-ui').innerText = `أنا: ${(myData.deck || []).length}`;
+        document.getElementById('my-ui').className = `player-info ${r.turn === myId ? 'turn-now' : ''}`;
+        document.getElementById('opp-ui').innerText = `${oppData.name}: ${(oppData.deck || []).length}`;
+        document.getElementById('opp-ui').className = `player-info ${r.turn === oppId ? 'turn-now' : ''}`;
+        document.getElementById('count-ground').innerText = `الأرض: ${table.length}`;
+        document.getElementById('status-text').innerText = r.turn === myId ? "دورك!" : "انتظر..";
+
+        // رسم ورق الأرض بـ "أنيميشن"
+        const ground = document.getElementById('ground-pile');
+        ground.innerHTML = "";
+        table.slice(-5).forEach((c, i) => {
+            const el = document.createElement('div');
+            el.className = 'card';
+            el.style.backgroundImage = `url('${IMG_BASE + c.id}')`;
+            el.style.transform = `rotate(${i*6-12}deg)`;
+            el.style.zIndex = i;
+            ground.appendChild(el);
+        });
+
+        // فحص الفوز (لو ورق واحد خلص التاني يكسب)
+        if(r.status === 'play') {
+            if((myData.deck || []).length === 0 && table.length === 0) showWin(oppId);
+            else if(oppId && (r.players[oppId].deck || []).length === 0 && table.length === 0) showWin(myId);
+            // لو واحد جمع الـ 52 كلهم
+            if((myData.deck || []).length === 52) showWin(myId);
+            else if(oppId && (r.players[oppId].deck || []).length === 52) showWin(oppId);
         }
+    }
 
-        up[`players/${myId}/deck`] = myDeck;
-        up['table'] = table;
-        db.ref(`FoqBa3dih_Kareem/${roomId}`).update(up);
-    });
-}
+    function throwCard() {
+        db.ref(`KAREEM_FOQ/${roomId}`).once('value', s => {
+            const r = s.val();
+            if(r.turn !== myId || r.status !== 'play') return;
+
+            let myDeck = r.players[myId].deck || [];
+            if(myDeck.length === 0) return;
+
+            // أنيميشن يدوي سريع قبل تحديث الداتابيز
+            document.getElementById('my-deck').classList.add('throwing');
+
+            setTimeout(() => {
+                let card = myDeck.shift();
+                let table = r.table || [];
+                let last = table.length > 0 ? table[table.length - 1] : null;
+                let oppId = Object.keys(r.players).find(x => x !== myId);
+                
+                let up = {};
+                if(last && last.v === card.v) {
+                    // "لقشة" (Animate later to player deck)
+                    table.push(card);
+                    myDeck.push(...table); 
+                    table = [];
+                    up['turn'] = myId; // يكمل لعب
+                } else {
+                    table.push(card);
+                    up['turn'] = oppId;
+                }
+
+                up[`players/${myId}/deck`] = myDeck;
+                up['table'] = table;
+                db.ref(`KAREEM_FOQ/${roomId}`).update(up);
+                document.getElementById('my-deck').classList.remove('throwing');
+            }, 400);
+        });
+    }
+
+    function showWin(name) {
+        document.getElementById('winner-name').innerText = name;
+        document.getElementById('win-overlay').style.display = 'flex';
+        if(isHost) {
+            setTimeout(() => db.ref(`KAREEM_FOQ/${roomId}`).remove(), 5000);
+        }
+    }
 </script>
 </body>
 </html>
