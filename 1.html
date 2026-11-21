@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تحميل الكوتشينة PDF</title>
+  <!-- استدعاء مكتبة jsPDF لإنشاء ملف PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .box {
+      background: #1e1e1e;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      max-width: 400px;
+      width: 100%;
+    }
+    button {
+      background-color: #2ea44f;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 15px;
+      transition: background 0.2s;
+    }
+    button:hover { background-color: #2c974b; }
+    button:disabled { background-color: #555; cursor: not-allowed; }
+    #status {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #bbb;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #333;
+      border-radius: 4px;
+      margin-top: 10px;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #2ea44f;
+      width: 0%;
+      transition: width 0.2s;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="box">
+    <h2>تجميع ورق الكوتشينة PDF</h2>
+    <p>سيتم تحميل الـ 52 ورقة بالترتيب + ضهر الورقة في ملف واحد.</p>
+    <button id="downloadBtn" onclick="generatePDF()">بدء التحميل والدمج</button>
+    
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div id="status">جاهز للتحميل</div>
+  </div>
+
+  <script>
+    // دالة لتحميل الصورة وتحويلها إلى صيغة يفهمها الـ PDF
+    function loadImageAsDataURL(url) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous"; // ضروري للسماح بسحب الصور من GitHub
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d");
+          // ملء الخلفية باللون الأبيض في حال كانت الصورة شفافة
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          resolve({
+            dataUrl: canvas.toDataURL("image/jpeg", 0.95),
+            width: img.width,
+            height: img.height
+          });
+        };
+        img.onerror = () => reject(`فشل تحميل: ${url}`);
+        img.src = url;
+      });
+    }
+
+    async function generatePDF() {
+      const btn = document.getElementById("downloadBtn");
+      const status = document.getElementById("status");
+      const progressBar = document.getElementById("progressBar");
+      const progressFill = document.getElementById("progressFill");
+
+      btn.disabled = true;
+      progressBar.style.display = "block";
+
+      const baseUrl = "https://raw.githubusercontent.com/KEMO-omar/K/main/";
+      const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+      const suits = ["BLACK_CLUBS", "BLACK_SPADES", "RED_DIAMONDS", "RED_HEARTS"];
+
+      // بناء قائمة الملفات بالترتيب
+      const files = [];
+      for (const suit of suits) {
+        for (const rank of ranks) {
+          files.push(`${rank}_${suit}.PNG`);
+        }
+      }
+      files.push("BACK_CARD.PNG");
+
+      const { jsPDF } = window.jspdf;
+      let pdf = null;
+
+      for (let i = 0; i < files.length; i++) {
+        const fileName = files[i];
+        status.innerText = `جاري تحميل (${i + 1} من ${files.length}): ${fileName}`;
+        progressFill.style.width = `${((i + 1) / files.length) * 100}%`;
+
+        try {
+          const imgData = await loadImageAsDataURL(baseUrl + fileName);
+          
+          // ضبط مقاس صفحة الـ PDF ليكون نفس مقاس الكارت بالضبط
+          const orientation = imgData.width > imgData.height ? 'l' : 'p';
+          if (i === 0) {
+            pdf = new jsPDF({
+              orientation: orientation,
+              unit: "px",
+              format: [imgData.width, imgData.height]
+            });
+          } else {
+            pdf.addPage([imgData.width, imgData.height], orientation);
+          }
+
+          pdf.addImage(imgData.dataUrl, "JPEG", 0, 0, imgData.width, imgData.height);
+        } catch (error) {
+          console.error(error);
+          status.innerText = `تعذر تحميل ${fileName}، تأكد من الاتصال أو اسم الفرع.`;
+        }
+      }
+
+      if (pdf) {
+        status.innerText = "جاري حفظ ملف الـ PDF...";
+        pdf.save("playing_cards.pdf");
+        status.innerText = "✅ تم التحميل بنجاح!";
+      }
+
+      btn.disabled = false;
+    }
+  </script>
+
+</body>
+</html>
